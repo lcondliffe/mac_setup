@@ -1,0 +1,9 @@
+# Ansible
+*.retry
+
+# macOS
+.DS_Store
+
+# Local-only overrides (e.g. ansible-playbook -e @my-vars.yml)
+my-vars.yml
+*.local.yml

@@ -1,0 +1,20 @@
+- name: Ensure .zshrc contains a managed block for custom aliases
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    create: true
+    marker: "# {mark} ANSIBLE MANAGED BLOCK: Custom Aliases"
+    block: |
+      {% for alias_name, alias_command in shell_aliases.items() %}
+      alias {{ alias_name }}='{{ alias_command | replace("'", "'" ~ '"' ~ "'" ~ '"' ~ "'") }}'
+      {% endfor %}
+
+      cat-all() {
+        for file in *; do
+          if [ -f "$file" ]; then
+            echo -e "\n$file\n_____"
+            cat "$file"
+            echo -e "\n"
+          fi
+        done
+      }
+  tags: [aliases, shell]

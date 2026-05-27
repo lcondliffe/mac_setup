@@ -1,0 +1,37 @@
+- name: Install krew (kubectl plugin manager)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    cd "$(mktemp -d)"
+    OS="$(uname | tr '[:upper:]' '[:lower:]')"
+    ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
+    KREW="krew-${OS}_${ARCH}"
+    curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz"
+    tar zxvf "${KREW}.tar.gz"
+    ./"${KREW}" install krew
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_env.HOME }}/.krew/bin/kubectl-krew"
+  tags: [kubectl]
+
+- name: Ensure krew is on PATH in .zshrc
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    create: true
+    marker: "# {mark} ANSIBLE MANAGED BLOCK: kubectl-krew PATH"
+    block: |
+      export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+  tags: [kubectl, shell]
+
+- name: Verify krew installation
+  ansible.builtin.command: kubectl krew version
+  environment:
+    PATH: "{{ ansible_env.HOME }}/.krew/bin:{{ ansible_env.PATH }}"
+  register: krew_version
+  changed_when: false
+  failed_when: false
+  tags: [kubectl]
+
+- name: Output krew version
+  ansible.builtin.debug:
+    msg: "{{ krew_version.stdout_lines | default(['krew not yet on PATH — open a new shell']) }}"
+  tags: [kubectl]

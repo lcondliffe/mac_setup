@@ -1,0 +1,38 @@
+- name: Configure git user.name
+  community.general.git_config:
+    name: user.name
+    scope: global
+    value: "{{ git_user_name }}"
+  tags: [git]
+
+- name: Configure git user.email
+  community.general.git_config:
+    name: user.email
+    scope: global
+    value: "{{ git_user_email }}"
+  tags: [git]
+
+- name: Configure git credential helper (osxkeychain)
+  community.general.git_config:
+    name: credential.helper
+    scope: global
+    value: osxkeychain
+  tags: [git]
+
+- name: Disable paging on git diff
+  community.general.git_config:
+    name: pager.diff
+    scope: global
+    value: "false"
+  tags: [git]
+
+- name: Show resulting git config
+  ansible.builtin.command: git config --global --list
+  register: git_global_config
+  changed_when: false
+  tags: [git]
+
+- name: Output git config
+  ansible.builtin.debug:
+    msg: "{{ git_global_config.stdout_lines }}"
+  tags: [git]

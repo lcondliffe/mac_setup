@@ -1,0 +1,44 @@
+---
+- name: macOS setup
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Ensure base directories exist in HOME
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ directories }}"
+      tags: [dirs]
+
+    - name: Homebrew (taps + formulae + casks)
+      ansible.builtin.include_tasks: tasks/homebrew.yml
+      tags: [homebrew, packages, taps, formulae, casks, upgrade]
+
+    - name: Exported environment variables (managed block in .zshrc)
+      ansible.builtin.include_tasks: tasks/env_simple.yml
+      tags: [env, shell]
+
+    - name: Shell aliases (managed block in .zshrc)
+      ansible.builtin.include_tasks: tasks/aliases.yml
+      tags: [aliases, shell]
+
+    - name: Git configuration
+      ansible.builtin.include_tasks: tasks/git.yml
+      tags: [git]
+
+    - name: pipx packages
+      ansible.builtin.include_tasks: tasks/pipx.yml
+      tags: [pipx, packages]
+
+    - name: Kubectl krew
+      ansible.builtin.include_tasks: tasks/kubectl.yml
+      tags: [kubectl]
+
+    - name: VSCode extensions
+      ansible.builtin.include_tasks: tasks/vscode_extensions.yml
+      tags: [vscode]
