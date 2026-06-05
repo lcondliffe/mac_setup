@@ -42,3 +42,7 @@
     - name: VSCode extensions
       ansible.builtin.include_tasks: tasks/vscode_extensions.yml
       tags: [vscode]
+
+    - name: macOS screenshot keyboard shortcuts
+      ansible.builtin.include_tasks: tasks/keyboard_shortcuts.yml
+      tags: [keyboard, shortcuts]

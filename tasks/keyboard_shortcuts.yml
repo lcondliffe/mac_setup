@@ -1,0 +1,41 @@
+- name: Configure macOS screenshot symbolic hotkeys
+  ansible.builtin.shell:
+    cmd: |
+      set -uo pipefail
+      id="{{ item.id }}"
+      desired="{{ item.parameters | join(',') }}"
+      current=$(defaults export com.apple.symbolichotkeys - 2>/dev/null \
+        | plutil -extract "AppleSymbolicHotKeys.${id}.value.parameters" json -o - - 2>/dev/null \
+        | tr -d '[:space:][]') || true
+      if [ "$current" = "$desired" ]; then
+        echo "UNCHANGED"
+        exit 0
+      fi
+      defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$id" "
+        <dict>
+          <key>enabled</key><true/>
+          <key>value</key>
+          <dict>
+            <key>type</key><string>standard</string>
+            <key>parameters</key>
+            <array>
+              <integer>{{ item.parameters[0] }}</integer>
+              <integer>{{ item.parameters[1] }}</integer>
+              <integer>{{ item.parameters[2] }}</integer>
+            </array>
+          </dict>
+        </dict>"
+      echo "CHANGED"
+  register: symbolichotkeys_result
+  changed_when: "'CHANGED' in symbolichotkeys_result.stdout"
+  loop: "{{ screenshot_hotkeys }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: [keyboard, shortcuts]
+
+- name: Reactivate symbolic hotkeys (apply without logout)
+  ansible.builtin.command: >-
+    /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+  when: symbolichotkeys_result.changed
+  changed_when: false
+  tags: [keyboard, shortcuts]

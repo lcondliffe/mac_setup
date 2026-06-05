@@ -138,6 +138,27 @@ vscode_extensions:
   - pkief.material-icon-theme
   - saoudrizwan.claude-dev
 
+# macOS screenshot keyboard shortcuts (com.apple.symbolichotkeys)
+# Swaps the defaults so the simple combos copy to the clipboard, and the
+# file-saving behavior moves to the 4-key combos (nothing is lost).
+#   parameters = [asciiCode, virtualKeyCode, modifierMask]
+#   modifier masks: Cmd=1048576  Shift=131072  Ctrl=262144  Option=524288
+#     Cmd+Shift       = 1179648
+#     Cmd+Ctrl+Shift  = 1441792
+screenshot_hotkeys:
+  - id: 28
+    name: "Save full screen to file (Cmd+Ctrl+Shift+3)"
+    parameters: [51, 20, 1441792]
+  - id: 29
+    name: "Copy full screen to clipboard (Cmd+Shift+3)"
+    parameters: [51, 20, 1179648]
+  - id: 30
+    name: "Save selected area to file (Cmd+Ctrl+Shift+4)"
+    parameters: [52, 21, 1441792]
+  - id: 31
+    name: "Copy selected area to clipboard (Cmd+Shift+4)"
+    parameters: [52, 21, 1179648]
+
 # shell aliases
 shell_aliases:
   ap: ansible-playbook
