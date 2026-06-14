@@ -54,3 +54,7 @@
     - name: macOS Finder preferences
       ansible.builtin.include_tasks: tasks/finder.yml
       tags: [finder, macos]
+
+    - name: macOS screenshot capture preferences
+      ansible.builtin.include_tasks: tasks/screenshots.yml
+      tags: [screenshots, macos]

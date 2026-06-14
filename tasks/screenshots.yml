@@ -1,0 +1,26 @@
+- name: Ensure screenshot save folder exists
+  ansible.builtin.file:
+    path: "{{ screenshot_location }}"
+    state: directory
+    mode: "0755"
+  tags: [screenshots, macos]
+
+- name: Configure macOS screenshot capture preferences
+  community.general.osx_defaults:
+    domain: com.apple.screencapture
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    state: present
+  loop: "{{ screenshot_defaults }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: screencapture_result
+  tags: [screenshots, macos]
+
+- name: Restart SystemUIServer to apply screenshot settings
+  ansible.builtin.command: killall SystemUIServer
+  when: screencapture_result.changed
+  changed_when: false
+  failed_when: false
+  tags: [screenshots, macos]

@@ -60,6 +60,7 @@ Targeted runs with tags (faster, incremental):
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
 | `dock` | macOS Dock preferences (e.g. hide recent apps) |
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
+| `screenshots` | Screenshot save folder + no window shadow |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`
 
