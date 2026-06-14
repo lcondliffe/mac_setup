@@ -46,3 +46,7 @@
     - name: macOS screenshot keyboard shortcuts
       ansible.builtin.include_tasks: tasks/keyboard_shortcuts.yml
       tags: [keyboard, shortcuts]
+
+    - name: macOS Dock preferences
+      ansible.builtin.include_tasks: tasks/dock.yml
+      tags: [dock, macos]

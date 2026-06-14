@@ -1,0 +1,19 @@
+- name: Configure macOS Dock preferences
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    state: present
+  loop: "{{ dock_defaults }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: dock_defaults_result
+  tags: [dock, macos]
+
+- name: Restart Dock to apply changes
+  ansible.builtin.command: killall Dock
+  when: dock_defaults_result.changed
+  changed_when: false
+  failed_when: false
+  tags: [dock, macos]

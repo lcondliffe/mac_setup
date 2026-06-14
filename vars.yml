@@ -159,6 +159,14 @@ screenshot_hotkeys:
     name: "Copy selected area to clipboard (Cmd+Shift+4)"
     parameters: [52, 21, 1179648]
 
+# macOS Dock preferences (com.apple.dock)
+# Native, idempotent defaults applied via community.general.osx_defaults.
+dock_defaults:
+  - key: show-recents
+    type: bool
+    value: false
+    name: "Hide recent/suggested apps in Dock"
+
 # shell aliases
 shell_aliases:
   ap: ansible-playbook
