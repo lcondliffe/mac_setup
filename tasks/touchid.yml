@@ -1,0 +1,16 @@
+# Enables Touch ID for `sudo` in the terminal.
+# Writes /etc/pam.d/sudo_local, which Apple includes from the main sudo PAM
+# config and — unlike editing /etc/pam.d/sudo directly — persists across macOS
+# updates. Requires root, so this is the only become: true task in the play.
+# Run with: ansible-playbook mac-setup.yml -t touchid -K
+- name: Enable Touch ID for sudo (persists across macOS updates)
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sudo_local
+    create: true
+    owner: root
+    group: wheel
+    mode: "0444"
+    regexp: '^#?\s*auth\s+sufficient\s+pam_tid\.so'
+    line: "auth       sufficient     pam_tid.so"
+  tags: [touchid, macos]

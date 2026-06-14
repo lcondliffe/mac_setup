@@ -61,6 +61,7 @@ Targeted runs with tags (faster, incremental):
 | `dock` | macOS Dock preferences (e.g. hide recent apps) |
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
+| `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`
 
@@ -73,5 +74,5 @@ ansible-playbook --check mac-setup.yml
 
 ## Notes
 
-- No `-K` (sudo password): Homebrew runs as the user. There are no `become: true` tasks.
+- Sudo: only the `touchid` task needs root. A normal full run needs `-K` (it will prompt for your sudo password), or run `ansible-playbook mac-setup.yml --skip-tags touchid` to keep it password-free. Everything else (Homebrew included) runs as the user.
 - The playbook expects Homebrew at `/opt/homebrew/bin/brew` (Apple Silicon). For Intel Macs, change the `PATH` in `vars.yml` to use `/usr/local/bin` and adjust the brew check in `tasks/homebrew.yml`.

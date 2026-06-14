@@ -58,3 +58,7 @@
     - name: macOS screenshot capture preferences
       ansible.builtin.include_tasks: tasks/screenshots.yml
       tags: [screenshots, macos]
+
+    - name: Touch ID for sudo (requires -K; skip with --skip-tags touchid)
+      ansible.builtin.include_tasks: tasks/touchid.yml
+      tags: [touchid, macos]
