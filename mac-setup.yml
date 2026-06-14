@@ -50,3 +50,7 @@
     - name: macOS Dock preferences
       ansible.builtin.include_tasks: tasks/dock.yml
       tags: [dock, macos]
+
+    - name: macOS Finder preferences
+      ansible.builtin.include_tasks: tasks/finder.yml
+      tags: [finder, macos]

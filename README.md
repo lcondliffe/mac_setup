@@ -59,6 +59,7 @@ Targeted runs with tags (faster, incremental):
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
 | `dock` | macOS Dock preferences (e.g. hide recent apps) |
+| `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`
 

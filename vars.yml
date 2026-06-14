@@ -167,6 +167,17 @@ dock_defaults:
     value: false
     name: "Hide recent/suggested apps in Dock"
 
+# macOS Finder preferences (applied via community.general.osx_defaults)
+# domain is per-item because these span NSGlobalDomain, Finder, and desktopservices.
+finder_defaults:
+  - { domain: NSGlobalDomain, key: AppleShowAllExtensions, type: bool, value: true, name: "Show all file extensions" }
+  - { domain: com.apple.finder, key: AppleShowAllFiles, type: bool, value: true, name: "Show hidden files" }
+  - { domain: com.apple.finder, key: ShowPathbar, type: bool, value: true, name: "Show path bar" }
+  - { domain: com.apple.finder, key: ShowStatusBar, type: bool, value: true, name: "Show status bar" }
+  - { domain: com.apple.finder, key: FXPreferredViewStyle, type: string, value: Nlsv, name: "Default to list view" }
+  - { domain: com.apple.finder, key: FXDefaultSearchScope, type: string, value: SCcf, name: "Search the current folder by default" }
+  - { domain: com.apple.desktopservices, key: DSDontWriteNetworkStores, type: bool, value: true, name: "No .DS_Store on network drives" }
+
 # shell aliases
 shell_aliases:
   ap: ansible-playbook

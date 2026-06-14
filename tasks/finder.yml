@@ -1,0 +1,19 @@
+- name: Configure macOS Finder preferences
+  community.general.osx_defaults:
+    domain: "{{ item.domain }}"
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    state: present
+  loop: "{{ finder_defaults }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: finder_defaults_result
+  tags: [finder, macos]
+
+- name: Restart Finder to apply changes
+  ansible.builtin.command: killall Finder
+  when: finder_defaults_result.changed
+  changed_when: false
+  failed_when: false
+  tags: [finder, macos]
