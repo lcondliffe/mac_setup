@@ -62,6 +62,7 @@ Targeted runs with tags (faster, incremental):
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
 | `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
+| `audit` | Read-only drift report: installed brews/casks/extensions/pipx vs `vars.yml` |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`
 

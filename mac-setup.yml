@@ -62,3 +62,7 @@
     - name: Touch ID for sudo (requires -K; skip with --skip-tags touchid)
       ansible.builtin.include_tasks: tasks/touchid.yml
       tags: [touchid, macos]
+
+    - name: Drift audit (read-only report; run with -t audit)
+      ansible.builtin.include_tasks: tasks/audit.yml
+      tags: [never, audit]

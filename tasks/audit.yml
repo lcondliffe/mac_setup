@@ -1,0 +1,60 @@
+# Read-only drift report: compares what's actually installed on this machine
+# against vars.yml, so manually-installed packages get codified (or removed)
+# instead of silently drifting from the playbook.
+# Run with: ansible-playbook mac-setup.yml -t audit
+
+- name: Collect brew formulae installed on request
+  ansible.builtin.command: /opt/homebrew/bin/brew leaves --installed-on-request
+  register: audit_brew_leaves
+  changed_when: false
+  tags: [never, audit]
+
+- name: Collect all installed brew formulae (including dependencies)
+  ansible.builtin.command: /opt/homebrew/bin/brew list --formula -1
+  register: audit_brew_formulae
+  changed_when: false
+  tags: [never, audit]
+
+- name: Collect installed brew casks
+  ansible.builtin.command: /opt/homebrew/bin/brew list --cask -1
+  register: audit_brew_casks
+  changed_when: false
+  tags: [never, audit]
+
+- name: Collect installed VSCode extensions
+  ansible.builtin.command: code --list-extensions
+  register: audit_code_extensions
+  changed_when: false
+  failed_when: false
+  tags: [never, audit]
+
+- name: Collect installed pipx packages
+  ansible.builtin.command: pipx list --short
+  register: audit_pipx
+  changed_when: false
+  failed_when: false
+  tags: [never, audit]
+
+- name: Report drift between vars.yml and this machine
+  vars:
+    # codex/httpie are installed by the broken-cask workaround in
+    # tasks/homebrew.yml, so they are expected even though not in vars.yml
+    audit_workaround_formulae: [codex, httpie]
+    # vars.yml entries may be tap-qualified (hashicorp/tap/terraform) while
+    # brew reports short names, so strip the tap prefix before comparing
+    want_formulae: "{{ (homebrew_formulae + audit_workaround_formulae) | map('regex_replace', '^.*/', '') | list }}"
+    want_casks: "{{ homebrew_casks | map('regex_replace', '^.*/', '') | list }}"
+    want_extensions: "{{ vscode_extensions | map('lower') | list }}"
+    have_extensions: "{{ audit_code_extensions.stdout_lines | default([]) | map('lower') | list }}"
+    have_pipx: "{{ audit_pipx.stdout_lines | default([]) | map('regex_replace', ' .*$', '') | list }}"
+  ansible.builtin.debug:
+    msg:
+      formulae_installed_but_not_in_vars: "{{ audit_brew_leaves.stdout_lines | difference(want_formulae) | sort }}"
+      formulae_in_vars_but_not_installed: "{{ want_formulae | difference(audit_brew_formulae.stdout_lines) | sort }}"
+      casks_installed_but_not_in_vars: "{{ audit_brew_casks.stdout_lines | difference(want_casks) | sort }}"
+      casks_in_vars_but_not_installed: "{{ want_casks | difference(audit_brew_casks.stdout_lines) | sort }}"
+      vscode_installed_but_not_in_vars: "{{ have_extensions | difference(want_extensions) | sort }}"
+      vscode_in_vars_but_not_installed: "{{ want_extensions | difference(have_extensions) | sort }}"
+      pipx_installed_but_not_in_vars: "{{ have_pipx | difference(pipx_packages) | sort }}"
+      pipx_in_vars_but_not_installed: "{{ pipx_packages | difference(have_pipx) | sort }}"
+  tags: [never, audit]
