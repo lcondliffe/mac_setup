@@ -1,5 +1,7 @@
 # Mac Terminal Setup
 
+![CI](https://github.com/lcondliffe/mac_setup/actions/workflows/ci.yml/badge.svg)
+
 Reproducible setup for macOS (Apple Silicon). The goal is to keep the machine as close to ephemeral as possible so rebuilds or OS reinstalls are fast: re-run the playbook and you're back in a working state.
 
 This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same principle, swapped substrate (Homebrew + casks instead of apt).
