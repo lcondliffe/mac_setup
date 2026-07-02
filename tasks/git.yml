@@ -12,18 +12,14 @@
     value: "{{ git_user_email }}"
   tags: [git]
 
-- name: Configure git credential helper (osxkeychain)
+- name: Configure global git settings
   community.general.git_config:
-    name: credential.helper
+    name: "{{ item.key }}"
     scope: global
-    value: osxkeychain
-  tags: [git]
-
-- name: Disable paging on git diff
-  community.general.git_config:
-    name: pager.diff
-    scope: global
-    value: "false"
+    value: "{{ item.value }}"
+  loop: "{{ git_settings | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
   tags: [git]
 
 - name: Show resulting git config

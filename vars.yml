@@ -8,6 +8,20 @@ env_vars:
 git_user_name: "Luke Condliffe"
 git_user_email: "aero161.luke@gmail.com"
 
+# Global git settings beyond identity (git config --global <key> <value>)
+# delta (git-delta, installed via brew above) formats diff/log/show output;
+# pager.diff uses --paging=never so `git diff` prints straight to the
+# terminal (delta-formatted) instead of opening less.
+git_settings:
+  credential.helper: osxkeychain
+  core.pager: delta
+  interactive.diffFilter: delta --color-only
+  delta.navigate: "true"
+  pager.diff: delta --paging=never
+  init.defaultBranch: main
+  pull.rebase: "true"
+  push.autoSetupRemote: "true"
+
 # home directory structure
 directories:
   - "{{ ansible_env.HOME }}/ansible"
@@ -190,7 +204,7 @@ shell_aliases:
   ap: ansible-playbook
   cls: clear
   commit: git add . && git commit -m
-  gd: git --no-pager diff
+  gd: git diff
   git-delete-branches: git branch | grep -v "main" | xargs git branch -D
   gl: git log
   gp: git push

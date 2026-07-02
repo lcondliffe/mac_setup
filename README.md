@@ -10,7 +10,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - Home-directory structure (`~/repo`, `~/scripts`, `~/temp`, etc.)
 - A managed block of non-secret env vars / PATH additions in `~/.zshrc`
 - A managed block of shell aliases + `cat-all` function in `~/.zshrc`
-- Global `git config` (identity, osxkeychain credential helper, `pager.diff=false`)
+- Global `git config` (identity + `git_settings` in vars.yml: osxkeychain credential helper, delta as pager, `pull.rebase`, `push.autoSetupRemote`, `init.defaultBranch=main`)
 - pipx packages
 - `krew` (kubectl plugin manager) install + PATH
 - VSCode extensions
@@ -24,7 +24,7 @@ All knobs live in [`vars.yml`](vars.yml):
 - `pipx_packages`, `vscode_extensions`
 - `shell_aliases`, `env_vars`
 - `directories`
-- `git_user_name`, `git_user_email`
+- `git_user_name`, `git_user_email`, `git_settings`
 
 Customize:
 1. Edit `vars.yml` directly.
