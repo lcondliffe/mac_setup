@@ -58,7 +58,7 @@ Targeted runs with tags (faster, incremental):
 | `kubectl` | krew install + PATH |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
-| `dock` | macOS Dock preferences (e.g. hide recent apps) |
+| `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
 | `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
