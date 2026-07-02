@@ -39,6 +39,8 @@ First-time bootstrap (installs Homebrew + Ansible if missing, then runs the play
 ./bootstrap_mac.sh
 ```
 
+The bootstrap skips the `touchid` task unless you pass `-K` (it needs sudo); run it afterwards with `ansible-playbook mac-setup.yml -t touchid -K`.
+
 Subsequent runs:
 
 ```bash
@@ -50,7 +52,7 @@ Targeted runs with tags (faster, incremental):
 | Tag | What it touches |
 |---|---|
 | `homebrew` | Taps, formulae, casks |
-| `homebrew,upgrade` | Formulae upgraded to latest (`state: latest`) |
+| `upgrade` | Brew formulae and pipx packages upgraded to latest |
 | `aliases,shell` | Just the aliases managed block |
 | `env,shell` | Just the env-vars managed block |
 | `git` | Global git config |

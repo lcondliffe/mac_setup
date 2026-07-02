@@ -2,26 +2,26 @@
   ansible.builtin.stat:
     path: /opt/homebrew/bin/brew
   register: brew_bin
-  tags: [homebrew]
+  tags: [homebrew, packages]
 
 - name: Fail if Homebrew is missing
   ansible.builtin.fail:
     msg: "Homebrew not found at /opt/homebrew/bin/brew. Run ./bootstrap_mac.sh first."
   when: not brew_bin.stat.exists
-  tags: [homebrew]
+  tags: [homebrew, packages]
 
 - name: Ensure Homebrew taps
   community.general.homebrew_tap:
     name: "{{ item }}"
     state: present
   loop: "{{ homebrew_taps }}"
-  tags: [homebrew, taps]
+  tags: [homebrew, packages, taps]
 
 - name: Install Homebrew formulae
   community.general.homebrew:
     name: "{{ homebrew_formulae }}"
     state: present
-  tags: [homebrew, formulae]
+  tags: [homebrew, packages, formulae]
 
 # Some packages collide with a same-named cask whose API entry is currently
 # broken upstream (`brew info <pkg>` crashes). The homebrew module calls info
@@ -34,7 +34,7 @@
   loop:
     - { name: codex,  creates: /opt/homebrew/bin/codex }
     - { name: httpie, creates: /opt/homebrew/bin/http }
-  tags: [homebrew, formulae]
+  tags: [homebrew, packages, formulae]
 
 - name: Upgrade Homebrew formulae (run explicitly)
   community.general.homebrew:
@@ -52,4 +52,4 @@
   failed_when:
     - cask_install.failed
     - "'already installed' not in (cask_install.msg | default(''))"
-  tags: [homebrew, casks]
+  tags: [homebrew, packages, casks]
