@@ -8,6 +8,12 @@ env_vars:
 git_user_name: "Luke Condliffe"
 git_user_email: "aero161.luke@gmail.com"
 
+# SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
+# to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
+ssh_gate_enabled: true
+ssh_dir: "{{ ansible_env.HOME }}/.ssh"
+ssh_key_path: "{{ ssh_dir }}/id_ed25519"
+
 # home directory structure
 directories:
   - "{{ ansible_env.HOME }}/ansible"
