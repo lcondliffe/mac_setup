@@ -15,6 +15,7 @@
 - name: Install required VSCode extensions
   ansible.builtin.command: "code --install-extension {{ item }}"
   loop: "{{ vscode_extensions }}"
+  changed_when: true
   when:
     - vscode_available.rc == 0
     - item not in vscode_installed.stdout_lines

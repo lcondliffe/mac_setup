@@ -1,0 +1,13 @@
+---
+# Accommodates the repo's existing style: aligned inline dicts in vars.yml,
+# long annotated lines, and task files without document-start markers.
+extends: default
+
+rules:
+  line-length:
+    max: 140
+  braces:
+    max-spaces-inside: 1
+  document-start: disable
+  truthy:
+    check-keys: false
