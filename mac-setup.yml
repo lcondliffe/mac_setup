@@ -37,7 +37,7 @@
 
     - name: pipx packages
       ansible.builtin.include_tasks: tasks/pipx.yml
-      tags: [pipx, packages]
+      tags: [pipx, packages, upgrade]
 
     - name: Kubectl krew
       ansible.builtin.include_tasks: tasks/kubectl.yml

@@ -31,7 +31,19 @@ fi
 ansible-galaxy collection install community.general
 
 hash -r
-ansible-playbook mac-setup.yml "$@"
+
+# The touchid task needs root (become: true). Unless the caller asked for a
+# sudo password prompt, skip it so a plain bootstrap run finishes clean.
+case " $* " in
+  *" -K "* | *" --ask-become-pass "*)
+    ansible-playbook mac-setup.yml "$@"
+    ;;
+  *)
+    echo "Note: skipping the touchid task (needs sudo). Run it later with:"
+    echo "  ansible-playbook mac-setup.yml -t touchid -K"
+    ansible-playbook mac-setup.yml --skip-tags touchid "$@"
+    ;;
+esac
 
 echo
 echo "Done. Open a new zsh session (or 'exec zsh -l') to pick up PATH / alias changes."

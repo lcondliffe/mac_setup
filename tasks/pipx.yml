@@ -7,11 +7,11 @@
   failed_when: pipx_install_result.rc != 0 and 'already installed' not in pipx_install_result.stderr
   tags: [pipx, packages]
 
-- name: Ensure pipx packages are upgraded to latest versions
+- name: Upgrade pipx packages (run explicitly)
   ansible.builtin.command:
     cmd: pipx upgrade {{ item }}
   loop: "{{ pipx_packages }}"
   register: pipx_upgrade_result
   changed_when: "'upgraded package' in pipx_upgrade_result.stdout"
   failed_when: pipx_upgrade_result.rc != 0 and 'is already at latest version' not in pipx_upgrade_result.stderr
-  tags: [pipx, packages, upgrade]
+  tags: [never, upgrade]

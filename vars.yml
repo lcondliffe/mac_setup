@@ -91,7 +91,6 @@ homebrew_formulae:
   - pkgconf
   - podman
   - podman-compose
-  - powershell
   - pre-commit
   - python@3.14
   - siderolabs/tap/talosctl
@@ -140,7 +139,6 @@ pipx_packages:
 vscode_extensions:
   - azurite.azurite
   - eamodio.gitlens                       # GitLens
-  - github.copilot-chat
   - github.github-vscode-theme
   - github.vscode-github-actions
   - hashicorp.terraform                   # HashiCorp Terraform
