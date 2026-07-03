@@ -49,6 +49,7 @@ Targeted runs with tags (faster, incremental):
 
 | Tag | What it touches |
 |---|---|
+| `ssh` | SSH key gate (also runs on every invocation via `always`) |
 | `homebrew` | Taps, formulae, casks |
 | `homebrew,upgrade` | Formulae upgraded to latest (`state: latest`) |
 | `aliases,shell` | Just the aliases managed block |
@@ -71,6 +72,10 @@ Dry-run / verify idempotency:
 ansible-playbook --syntax-check mac-setup.yml
 ansible-playbook --check mac-setup.yml
 ```
+
+## SSH key gate
+
+An SSH key is treated as a prerequisite: every run starts with a check for a private key in `~/.ssh` (`id_ed25519` / `id_ecdsa` / `id_rsa`). If none exists you're prompted to either type `generate` (creates a passphrase-less ed25519 key and prints the public key to add to GitHub) or press Enter to abort and import an existing key first. Non-interactive runs abort with the same instructions; pass `-e ssh_gate_action=generate` to generate unattended. Bypass the gate entirely with `-e ssh_gate_enabled=false`.
 
 ## Notes
 

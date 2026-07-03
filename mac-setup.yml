@@ -7,6 +7,10 @@
     - vars.yml
 
   tasks:
+    - name: SSH key gate (prerequisite check; prompts if no key exists)
+      ansible.builtin.include_tasks: tasks/ssh.yml
+      tags: [always, ssh]
+
     - name: Ensure base directories exist in HOME
       ansible.builtin.file:
         path: "{{ item }}"
