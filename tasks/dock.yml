@@ -17,3 +17,40 @@
   changed_when: false
   failed_when: false
   tags: [dock, macos]
+
+- name: Check for dockutil
+  ansible.builtin.stat:
+    path: /opt/homebrew/bin/dockutil
+  register: dockutil_bin
+  when: dock_manage_layout
+  tags: [dock, macos]
+
+- name: Note when dockutil is missing
+  ansible.builtin.debug:
+    msg: "dockutil not installed yet — run the homebrew tasks first (-t homebrew), then re-run -t dock."
+  when: dock_manage_layout and not dockutil_bin.stat.exists
+  tags: [dock, macos]
+
+- name: Read current Dock layout
+  ansible.builtin.shell: set -o pipefail; /opt/homebrew/bin/dockutil --list | cut -f1
+  args:
+    executable: /bin/bash
+  register: dock_layout_current
+  changed_when: false
+  when: dock_manage_layout and dockutil_bin.stat.exists
+  tags: [dock, macos]
+
+- name: Rebuild Dock layout (removes all pinned items, adds dock_apps in order)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    /opt/homebrew/bin/dockutil --remove all --no-restart >/dev/null
+    {% for app in dock_apps %}
+    /opt/homebrew/bin/dockutil --add "{{ app }}" --no-restart >/dev/null
+    {% endfor %}
+    killall Dock
+  vars:
+    dock_desired_labels: "{{ dock_apps | map('basename') | map('regex_replace', '\\.app$', '') | list }}"
+  when:
+    - dock_manage_layout and dockutil_bin.stat.exists
+    - dock_layout_current.stdout_lines != dock_desired_labels
+  tags: [dock, macos]
