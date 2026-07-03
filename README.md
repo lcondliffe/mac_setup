@@ -1,5 +1,7 @@
 # Mac Terminal Setup
 
+![CI](https://github.com/lcondliffe/mac_setup/actions/workflows/ci.yml/badge.svg)
+
 Reproducible setup for macOS (Apple Silicon). The goal is to keep the machine as close to ephemeral as possible so rebuilds or OS reinstalls are fast: re-run the playbook and you're back in a working state.
 
 This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same principle, swapped substrate (Homebrew + casks instead of apt).
@@ -49,8 +51,10 @@ Targeted runs with tags (faster, incremental):
 
 | Tag | What it touches |
 |---|---|
+| `ssh` | SSH key gate (also runs on every invocation via `always`) |
 | `homebrew` | Taps, formulae, casks |
 | `homebrew,upgrade` | Formulae upgraded to latest (`state: latest`) |
+| `cleanup` | `brew autoremove` + `brew cleanup --prune=all` (housekeeping) |
 | `aliases,shell` | Just the aliases managed block |
 | `env,shell` | Just the env-vars managed block |
 | `git` | Global git config |
@@ -58,7 +62,7 @@ Targeted runs with tags (faster, incremental):
 | `kubectl` | krew install + PATH |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
-| `dock` | macOS Dock preferences (e.g. hide recent apps) |
+| `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
 | `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
@@ -71,6 +75,10 @@ Dry-run / verify idempotency:
 ansible-playbook --syntax-check mac-setup.yml
 ansible-playbook --check mac-setup.yml
 ```
+
+## SSH key gate
+
+An SSH key is treated as a prerequisite: every run starts with a check for a private key in `~/.ssh` (`id_ed25519` / `id_ecdsa` / `id_rsa`). If none exists you're prompted to either type `generate` (creates a passphrase-less ed25519 key and prints the public key to add to GitHub) or press Enter to abort and import an existing key first. Non-interactive runs abort with the same instructions; pass `-e ssh_gate_action=generate` to generate unattended. Bypass the gate entirely with `-e ssh_gate_enabled=false`.
 
 ## Notes
 

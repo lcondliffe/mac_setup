@@ -22,6 +22,12 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
+# SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
+# to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
+ssh_gate_enabled: true
+ssh_dir: "{{ ansible_env.HOME }}/.ssh"
+ssh_key_path: "{{ ssh_dir }}/id_ed25519"
+
 # home directory structure
 directories:
   - "{{ ansible_env.HOME }}/ansible"
@@ -54,6 +60,7 @@ homebrew_formulae:
   - bat                                   # https://github.com/sharkdp/bat
   - cmake
   - curl
+  - dockutil                              # https://github.com/kcrawford/dockutil
   - eza                                   # https://github.com/eza-community/eza
   - flex
   - fluxcd/tap/flux
@@ -180,6 +187,19 @@ dock_defaults:
     type: bool
     value: false
     name: "Hide recent/suggested apps in Dock"
+
+# Declarative Dock layout (applied with dockutil, installed via brew above).
+# Apps are pinned in this order; anything else pinned to the Dock (apps or
+# folders) is removed. Set dock_manage_layout: false to leave the layout alone.
+dock_manage_layout: true
+dock_apps:
+  - /Applications/Google Chrome.app
+  - /Applications/Visual Studio Code.app
+  - /Applications/Warp.app
+  - /Applications/Obsidian.app
+  - /Applications/Notion.app
+  - /Applications/Claude.app
+  - /Applications/Codex.app
 
 # macOS Finder preferences (applied via community.general.osx_defaults)
 # domain is per-item because these span NSGlobalDomain, Finder, and desktopservices.

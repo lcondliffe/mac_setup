@@ -32,7 +32,7 @@
     cmd: "brew install --formula {{ item.name }}"
     creates: "{{ item.creates }}"
   loop:
-    - { name: codex,  creates: /opt/homebrew/bin/codex }
+    - { name: codex, creates: /opt/homebrew/bin/codex }
     - { name: httpie, creates: /opt/homebrew/bin/http }
   tags: [homebrew, formulae]
 
@@ -53,3 +53,15 @@
     - cask_install.failed
     - "'already installed' not in (cask_install.msg | default(''))"
   tags: [homebrew, casks]
+
+- name: Remove unused Homebrew dependencies (run explicitly)
+  ansible.builtin.command: /opt/homebrew/bin/brew autoremove
+  register: brew_autoremove_result
+  changed_when: "'Autoremoving' in brew_autoremove_result.stdout"
+  tags: [never, cleanup]
+
+- name: Clean up Homebrew caches and old versions (run explicitly)
+  ansible.builtin.command: /opt/homebrew/bin/brew cleanup --prune=all
+  register: brew_cleanup_result
+  changed_when: brew_cleanup_result.stdout | length > 0
+  tags: [never, cleanup]
