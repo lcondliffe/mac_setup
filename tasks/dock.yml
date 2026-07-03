@@ -50,6 +50,7 @@
     killall Dock
   vars:
     dock_desired_labels: "{{ dock_apps | map('basename') | map('regex_replace', '\\.app$', '') | list }}"
+  changed_when: true
   when:
     - dock_manage_layout and dockutil_bin.stat.exists
     - dock_layout_current.stdout_lines != dock_desired_labels
