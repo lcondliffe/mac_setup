@@ -1,0 +1,7 @@
+---
+skip_list:
+  # play/task names legitimately start lowercase (macOS, pipx)
+  - name[casing]
+  # the killall-style "restart X to apply" tasks are deliberately inline:
+  # handlers don't mix well with tag-filtered include_tasks runs
+  - no-handler

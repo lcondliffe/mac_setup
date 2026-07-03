@@ -27,7 +27,7 @@
   tags: [git]
 
 - name: Show resulting git config
-  ansible.builtin.command: git config --global --list
+  ansible.builtin.command: git config --global --list  # noqa: command-instead-of-module
   register: git_global_config
   changed_when: false
   tags: [git]
