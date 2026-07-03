@@ -21,7 +21,7 @@
 
     - name: Homebrew (taps + formulae + casks)
       ansible.builtin.include_tasks: tasks/homebrew.yml
-      tags: [homebrew, packages, taps, formulae, casks, upgrade]
+      tags: [homebrew, packages, taps, formulae, casks, upgrade, cleanup]
 
     - name: Exported environment variables (managed block in .zshrc)
       ansible.builtin.include_tasks: tasks/env_simple.yml

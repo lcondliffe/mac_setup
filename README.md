@@ -52,6 +52,7 @@ Targeted runs with tags (faster, incremental):
 | `ssh` | SSH key gate (also runs on every invocation via `always`) |
 | `homebrew` | Taps, formulae, casks |
 | `homebrew,upgrade` | Formulae upgraded to latest (`state: latest`) |
+| `cleanup` | `brew autoremove` + `brew cleanup --prune=all` (housekeeping) |
 | `aliases,shell` | Just the aliases managed block |
 | `env,shell` | Just the env-vars managed block |
 | `git` | Global git config |
