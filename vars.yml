@@ -56,13 +56,11 @@ homebrew_formulae:
   - ansible
   - azure-cli
   - azure/functions/azure-functions-core-tools@4
-  - bash
   - bat                                   # https://github.com/sharkdp/bat
   - cmake
   - curl
   - dockutil                              # https://github.com/kcrawford/dockutil
   - eza                                   # https://github.com/eza-community/eza
-  - flex
   - fluxcd/tap/flux
   - fzf                                   # https://github.com/junegunn/fzf
   - gemini-cli
@@ -75,7 +73,6 @@ homebrew_formulae:
   - googleworkspace-cli
   - graphviz
   - hashicorp/tap/terraform
-  - helix
   - helm
   - infisical/get-cli/infisical
   - jq
@@ -84,8 +81,6 @@ homebrew_formulae:
   - kubectx
   - libpq
   - ncdu                                  # https://github.com/rofl0r/ncdu
-  - oci-cli
-  - opencode
   - ossp-uuid
   - pipx
   - pkgconf
@@ -93,8 +88,6 @@ homebrew_formulae:
   - podman-compose
   - pre-commit
   - python@3.14
-  - siderolabs/tap/talosctl
-  - supabase/tap/supabase
   - uv
   - yamllint
   - zsh
@@ -105,9 +98,7 @@ homebrew_casks:
   - claude
   - claude-code
   - cursor
-  - docker-desktop
   - drawio
-  - flutter
   - gcloud-cli
   - godot
   - google-chrome
@@ -115,9 +106,7 @@ homebrew_casks:
   - maccy
   - microsoft-remote-desktop
   - notion
-  - nvidia-geforce-now
   - obsidian
-  - pgadmin4
   - postman
   - powershell
   - scroll-reverser
