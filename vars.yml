@@ -54,6 +54,7 @@ homebrew_taps:
 # Homebrew formulae (CLI tools)
 homebrew_formulae:
   - ansible
+  - ansible-lint
   - azure-cli
   - azure/functions/azure-functions-core-tools@4
   - bat                                   # https://github.com/sharkdp/bat
@@ -88,6 +89,7 @@ homebrew_formulae:
   - podman-compose
   - pre-commit
   - python@3.14
+  - tokei                                 # https://github.com/xampprocky/tokei
   - uv
   - yamllint
   - zsh
