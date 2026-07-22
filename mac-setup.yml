@@ -43,6 +43,10 @@
       ansible.builtin.include_tasks: tasks/kubectl.yml
       tags: [kubectl]
 
+    - name: Hermes agents (install + configure on-device profiles)
+      ansible.builtin.include_tasks: tasks/hermes.yml
+      tags: [hermes, upgrade]
+
     - name: VSCode extensions
       ansible.builtin.include_tasks: tasks/vscode_extensions.yml
       tags: [vscode]

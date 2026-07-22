@@ -1,0 +1,192 @@
+# Configure a single Hermes agent (included once per item in hermes_agents,
+# exposed as the loop var `agent`). Creates the profile, points it at the
+# desired provider/model, writes an optional managed persona, and — for agents
+# with auth: true — gates a one-time interactive OAuth login (mirrors the SSH
+# key gate in tasks/ssh.yml). Nothing here writes a secret to disk in the repo;
+# the OAuth token lands in ~/.hermes/auth.json, outside version control.
+
+- name: List existing hermes profiles
+  ansible.builtin.command: "{{ hermes_bin }} profile list"
+  register: hermes_profile_list
+  changed_when: false
+  tags: [hermes]
+
+- name: Create hermes profile {{ agent.name }}
+  ansible.builtin.command: >-
+    {{ hermes_bin }} profile create {{ agent.name }}
+    --description "{{ agent.description | default('') }}"
+  when: agent.name not in hermes_profile_list.stdout
+  changed_when: true
+  tags: [hermes]
+
+- name: Read the active hermes profile
+  ansible.builtin.command: cat "{{ ansible_env.HOME }}/.hermes/active_profile"  # noqa: command-instead-of-module
+  register: hermes_active_profile
+  changed_when: false
+  failed_when: false
+  tags: [hermes]
+
+- name: Activate hermes profile {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} profile use {{ agent.name }}"
+  when: (hermes_active_profile.stdout | default('') | trim) != agent.name
+  changed_when: true
+  tags: [hermes]
+
+- name: Read current model settings for {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} config get {{ item }}"
+  loop:
+    - model.provider
+    - model.default
+  register: hermes_model_get
+  changed_when: false
+  failed_when: false
+  tags: [hermes]
+
+- name: Apply model settings for {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} config set {{ item.key }} {{ item.value }}"
+  loop:
+    - { key: model.provider, value: "{{ agent.provider }}" }
+    - { key: model.default, value: "{{ agent.model }}" }
+  loop_control:
+    index_var: idx
+    label: "{{ item.key }}"
+  when: (hermes_model_get.results[idx].stdout | trim) != item.value
+  changed_when: true
+  tags: [hermes]
+
+- name: Resolve profile path for {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} profile show {{ agent.name }}"
+  register: hermes_profile_show
+  changed_when: false
+  when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
+  tags: [hermes]
+
+- name: Record the profile path for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_profile_path: "{{ hermes_profile_show.stdout | regex_search('Path:\\s*(\\S+)', '\\1') | first }}"
+  when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
+  tags: [hermes]
+
+- name: Write the managed persona (SOUL.md) for {{ agent.name }}
+  ansible.builtin.copy:
+    content: "{{ agent.persona }}"
+    dest: "{{ hermes_profile_path }}/SOUL.md"
+    mode: "0644"
+  when: agent.persona is defined
+  tags: [hermes]
+
+# --- Scheduled jobs (crons) for this agent ---
+# Reconciled by name into <profile>/cron/jobs.json. Jobs only FIRE once the
+# Hermes scheduler is running (`hermes gateway install`), so creating them here
+# is inert until opted into. Existing jobs are left untouched (edit/remove them
+# with `hermes cron edit|remove`).
+- name: Read existing scheduled jobs for {{ agent.name }}
+  ansible.builtin.slurp:
+    src: "{{ hermes_profile_path }}/cron/jobs.json"
+  register: hermes_jobs_raw
+  failed_when: false
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Compute existing cron names for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_cron_names: >-
+      {{ ((hermes_jobs_raw.content | b64decode | from_json).jobs | map(attribute='name') | list)
+         if (hermes_jobs_raw.content is defined) else [] }}
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Create scheduled jobs for {{ agent.name }}
+  ansible.builtin.command: >-
+    {{ hermes_bin }} cron create {{ item.schedule | quote }} {{ item.prompt | quote }}
+    --name {{ item.name | quote }}
+    --deliver {{ item.deliver | default('local') | quote }}
+    {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
+  loop: "{{ agent.crons | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name not in (hermes_cron_names | default([]))
+  changed_when: true
+  tags: [hermes]
+
+# --- Scheduler (gateway) for this agent ---
+# The gateway is a per-profile launchd user service (no sudo on macOS) that ticks
+# the cron scheduler so this agent's crons fire. `gateway status` reports the
+# active profile, which is this agent (activated above), so it doubles as the
+# idempotency gate. --start-on-login brings it back after a reboot.
+- name: Check gateway status for agent {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} gateway status"
+  register: hermes_gateway_status
+  changed_when: false
+  failed_when: false
+  when: agent.gateway | default(false) | bool
+  tags: [hermes]
+
+- name: Install and start the gateway for agent {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} gateway install --start-now --start-on-login"
+  when:
+    - agent.gateway | default(false) | bool
+    - "'not running' in (hermes_gateway_status.stdout | default('') | lower)"
+  changed_when: true
+  tags: [hermes]
+
+# --- OAuth login gate (only for agents that need authentication) ---
+
+- name: Check auth status for agent {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} auth status {{ agent.provider }}"
+  register: hermes_auth_status
+  changed_when: false
+  failed_when: false
+  when:
+    - hermes_auth_enabled | bool
+    - agent.auth | default(false) | bool
+  tags: [hermes]
+
+- name: Prompt for OAuth login for agent {{ agent.name }}
+  ansible.builtin.pause:
+    prompt: |-
+      Agent '{{ agent.name }}' needs a one-time OAuth login for provider
+      '{{ agent.provider }}' (this uses your subscription; no key is stored in git).
+
+      Type 'login' to open a browser and authenticate now, or press Enter to
+      skip and run 'hermes auth add {{ agent.provider }} --type oauth' later.
+  register: hermes_auth_answer
+  when:
+    - hermes_auth_enabled | bool
+    - agent.auth | default(false) | bool
+    - "'logged out' in (hermes_auth_status.stdout | default('') | lower)"
+    - (hermes_auth_action | default('')) == ''
+  tags: [hermes]
+
+- name: Resolve auth decision (explicit -e hermes_auth_action wins over the prompt)
+  ansible.builtin.set_fact:
+    hermes_auth_decision: >-
+      {{ (hermes_auth_action | default('') | trim | lower)
+         or (hermes_auth_answer.user_input | default('') | trim | lower) }}
+  when:
+    - hermes_auth_enabled | bool
+    - agent.auth | default(false) | bool
+    - "'logged out' in (hermes_auth_status.stdout | default('') | lower)"
+  tags: [hermes]
+
+- name: Add OAuth credential for agent {{ agent.name }}
+  ansible.builtin.command: "{{ hermes_bin }} auth add {{ agent.provider }} --type oauth"
+  when:
+    - hermes_auth_enabled | bool
+    - agent.auth | default(false) | bool
+    - "'logged out' in (hermes_auth_status.stdout | default('') | lower)"
+    - (hermes_auth_decision | default('')) == 'login'
+  changed_when: true
+  tags: [hermes]
+
+- name: Note skipped login for agent {{ agent.name }}
+  ansible.builtin.debug:
+    msg: >-
+      {{ agent.provider }} not authenticated. Complete it any time with:
+      hermes auth add {{ agent.provider }} --type oauth
+  when:
+    - hermes_auth_enabled | bool
+    - agent.auth | default(false) | bool
+    - "'logged out' in (hermes_auth_status.stdout | default('') | lower)"
+    - (hermes_auth_decision | default('')) != 'login'
+  tags: [hermes]

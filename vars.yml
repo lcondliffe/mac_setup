@@ -22,6 +22,79 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
+# Hermes agents (Nous Research). Hermes installs via the upstream install.sh;
+# each entry below becomes an isolated on-device profile. Credentials are NEVER
+# stored here or anywhere in git: an agent with `auth: true` triggers a one-time
+# OAuth login (hermes auth add <provider>) saved to ~/.hermes/auth.json.
+# Note: gpt-5.6-sol is only reachable through the openai-codex OAuth provider,
+# not a plain OPENAI_API_KEY.
+#
+# Add another agent later = append one list entry (name must be lowercase,
+# alphanumeric). `persona:` is optional (omit to keep Hermes' default SOUL.md).
+hermes_install_enabled: true
+
+# Hermes tracks a git branch (rolling; it ships no release tags). Normal runs
+# install it only if missing. Upgrades are an explicit, opt-in step that runs
+# Hermes' own upgrader so skills and persistent agent config migrate for the
+# incoming version:
+#   ansible-playbook mac-setup.yml -t upgrade
+# That runs `hermes update` (pull latest of hermes_git_branch + reinstall deps +
+# re-sync bundled skills + migrate config). `hermes --version` reports when a
+# newer commit is available. hermes_version is a reference label only (what you
+# last upgraded to); the live version is printed on every run — bump it after an
+# upgrade if you want the vars to keep reflecting reality.
+hermes_version: "0.19.0"
+hermes_git_branch: main
+
+# Interactive OAuth login gate (like ssh_gate_enabled). Set false to skip the
+# browser login entirely; -e hermes_auth_enabled=false for unattended runs.
+hermes_auth_enabled: true
+
+# Which agent becomes this machine's sticky-default hermes profile.
+hermes_default_profile: mack
+
+hermes_agents:
+  - name: mack
+    description: "Main personal on-device agent."
+    provider: openai-codex
+    model: openai/gpt-5.6-sol
+    auth: true
+    # Install a per-profile launchd user service (no sudo) that runs the cron
+    # scheduler so this agent's crons actually fire, and starts on login. Set
+    # false to leave the scheduler off (crons stay inert).
+    gateway: true
+    persona: |
+      # Mack
+
+      Managed by Ansible. You are Mack, Luke's main personal agent, running
+      on-device on his Mac. You are practical, direct, and proactive.
+    # Scheduled jobs, reconciled by name into <profile>/cron/jobs.json. They
+    # only FIRE once the Hermes scheduler runs (`hermes gateway install`), so
+    # these are inert until you opt in. Fields: name, schedule (cron expr or
+    # '30m'/'every 2h'), prompt, optional deliver (default local) and skills.
+    crons:
+      # DRAFT: needs calendar access (add an MCP calendar server via
+      # `hermes mcp add`) and notebook access (the `note-taking` skill is
+      # installed; point it at your notes) before it produces a useful brief.
+      - name: daily-standup
+        schedule: "0 8 * * *"
+        deliver: local
+        skills:
+          - note-taking
+        prompt: >-
+          It's the start of my working day. Summarise what we worked on
+          yesterday (check recent notes and past sessions), then draft a rough
+          agenda for today: 3-5 prioritised items plus any calendar events.
+          Keep it concise. NOTE: this is a draft — calendar access (via an MCP
+          server) and notebook access still need wiring up, so use whatever is
+          available and clearly flag anything you could not access.
+  # Add more agents here, e.g.:
+  # - name: scout
+  #   description: "Lightweight research agent."
+  #   provider: openrouter
+  #   model: openai/gpt-5.6-sol
+  #   auth: false
+
 # SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
 # to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
 ssh_gate_enabled: true
@@ -114,7 +187,6 @@ homebrew_casks:
   - scroll-reverser
   - terraform-linters/tap/tflint
   - twingate
-  - unnaturalscrollwheels
   - visual-studio-code
   - warp
   - zoom
