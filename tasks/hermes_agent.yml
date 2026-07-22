@@ -1,13 +1,11 @@
-# Configure a single Hermes agent (included once per item in hermes_agents,
-# exposed as the loop var `agent`). Creates the profile, points it at the
-# desired provider/model, writes an optional managed persona, and — for agents
-# with auth: true — gates a one-time interactive OAuth login (mirrors the SSH
-# key gate in tasks/ssh.yml). Nothing here writes a secret to disk in the repo;
-# the OAuth token lands in ~/.hermes/auth.json, outside version control.
+# Configure one Hermes agent (loop var `agent`): profile, model, optional persona,
+# crons, gateway, and a one-time OAuth login gate (mirrors tasks/ssh.yml). No
+# secret hits the repo — the OAuth token lands in ~/.hermes/auth.json.
 
 - name: List existing hermes profiles
   ansible.builtin.command: "{{ hermes_bin }} profile list"
   register: hermes_profile_list
+  check_mode: false
   changed_when: false
   tags: [hermes]
 
@@ -22,6 +20,7 @@
 - name: Read the active hermes profile
   ansible.builtin.command: cat "{{ ansible_env.HOME }}/.hermes/active_profile"  # noqa: command-instead-of-module
   register: hermes_active_profile
+  check_mode: false
   changed_when: false
   failed_when: false
   tags: [hermes]
@@ -38,6 +37,7 @@
     - model.provider
     - model.default
   register: hermes_model_get
+  check_mode: false
   changed_when: false
   failed_when: false
   tags: [hermes]
@@ -57,6 +57,7 @@
 - name: Resolve profile path for {{ agent.name }}
   ansible.builtin.command: "{{ hermes_bin }} profile show {{ agent.name }}"
   register: hermes_profile_show
+  check_mode: false
   changed_when: false
   when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
   tags: [hermes]
@@ -75,11 +76,9 @@
   when: agent.persona is defined
   tags: [hermes]
 
-# --- Scheduled jobs (crons) for this agent ---
-# Reconciled by name into <profile>/cron/jobs.json. Jobs only FIRE once the
-# Hermes scheduler is running (`hermes gateway install`), so creating them here
-# is inert until opted into. Existing jobs are left untouched (edit/remove them
-# with `hermes cron edit|remove`).
+# --- Scheduled jobs (crons) ---
+# Reconciled by name into <profile>/cron/jobs.json; fire only once the gateway
+# runs. Existing jobs left untouched (change via `hermes cron edit|remove`).
 - name: Read existing scheduled jobs for {{ agent.name }}
   ansible.builtin.slurp:
     src: "{{ hermes_profile_path }}/cron/jobs.json"
@@ -109,14 +108,13 @@
   changed_when: true
   tags: [hermes]
 
-# --- Scheduler (gateway) for this agent ---
-# The gateway is a per-profile launchd user service (no sudo on macOS) that ticks
-# the cron scheduler so this agent's crons fire. `gateway status` reports the
-# active profile, which is this agent (activated above), so it doubles as the
-# idempotency gate. --start-on-login brings it back after a reboot.
+# --- Scheduler (gateway) ---
+# Per-profile launchd user service (no sudo) that ticks the cron scheduler.
+# `gateway status` reflects the active (this) profile — doubles as the idempotency gate.
 - name: Check gateway status for agent {{ agent.name }}
   ansible.builtin.command: "{{ hermes_bin }} gateway status"
   register: hermes_gateway_status
+  check_mode: false
   changed_when: false
   failed_when: false
   when: agent.gateway | default(false) | bool
@@ -130,11 +128,12 @@
   changed_when: true
   tags: [hermes]
 
-# --- OAuth login gate (only for agents that need authentication) ---
+# --- OAuth login gate ---
 
 - name: Check auth status for agent {{ agent.name }}
   ansible.builtin.command: "{{ hermes_bin }} auth status {{ agent.provider }}"
   register: hermes_auth_status
+  check_mode: false
   changed_when: false
   failed_when: false
   when:

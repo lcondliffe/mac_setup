@@ -1,12 +1,6 @@
-# Hermes agent (Nous Research). Installs/pins the upstream CLI, then configures
-# one on-device profile per entry in `hermes_agents` (see vars.yml). Hermes is
-# NOT a Homebrew package: it installs via install.sh into ~/.hermes with the
-# binary at ~/.local/bin/hermes (already on PATH via env_vars), and the checkout
-# is a git repo. Version is pinned by commit (hermes_commit) since Hermes ships
-# no release tags; the playbook reconciles the checkout to that commit so a
-# fresh machine is reproducible and bumping the pin performs an upgrade. No
-# credential is stored in git — agents with `auth: true` trigger a one-time
-# interactive OAuth login (see tasks/hermes_agent.yml).
+# Hermes (Nous Research): install the upstream CLI (rolling, tracks a git branch;
+# not a Homebrew package) and configure one profile per hermes_agents entry.
+# No credential in git — see the OAuth gate in tasks/hermes_agent.yml.
 
 - name: Record the hermes binary path
   ansible.builtin.set_fact:
@@ -39,10 +33,8 @@
   when: not hermes_stat.stat.exists
   tags: [hermes, upgrade]
 
-# Upgrade path (opt-in): `ansible-playbook mac-setup.yml -t upgrade`.
-# Runs Hermes' own upgrader, which pulls the latest of hermes_git_branch,
-# reinstalls deps, re-syncs bundled skills, and migrates persistent config for
-# the incoming version. Gated on `update --check` so it's a no-op when current.
+# Upgrade (opt-in, -t upgrade): `hermes update` pulls latest, reinstalls deps,
+# re-syncs skills, migrates config. Gated on --check so it's a no-op when current.
 - name: Check whether a Hermes update is available (run explicitly)
   ansible.builtin.command: "{{ hermes_bin }} update --check"
   register: hermes_update_check
@@ -60,6 +52,7 @@
 - name: Read the installed hermes version
   ansible.builtin.command: "{{ hermes_bin }} --version"
   register: hermes_version_out
+  check_mode: false
   changed_when: false
   tags: [hermes, upgrade]
 
@@ -79,6 +72,7 @@
 - name: Read the active hermes profile
   ansible.builtin.command: cat "{{ ansible_env.HOME }}/.hermes/active_profile"  # noqa: command-instead-of-module
   register: hermes_active_profile_final
+  check_mode: false
   changed_when: false
   failed_when: false
   tags: [hermes]
@@ -92,6 +86,7 @@
 - name: Show configured hermes profiles
   ansible.builtin.command: "{{ hermes_bin }} profile list"
   register: hermes_profile_list_final
+  check_mode: false
   changed_when: false
   tags: [hermes]
 
