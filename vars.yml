@@ -172,6 +172,7 @@ homebrew_casks:
   - cursor
   - docker-desktop
   - drawio
+  - emdash
   - flutter
   - gcloud-cli
   - godot
