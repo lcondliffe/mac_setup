@@ -1,0 +1,8 @@
+---
+# Packages and tools used only for work.
+# Combine with personal using: -e '{"setup_scopes":["personal","work"]}'
+work_homebrew_taps: []
+work_homebrew_formulae: []
+work_homebrew_casks: []
+work_pipx_packages: []
+work_vscode_extensions: []

@@ -21,17 +21,40 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 
 ## Configuration
 
-All knobs live in [`vars.yml`](vars.yml):
+Common configuration lives in [`vars.yml`](vars.yml). Package-only overlays
+live in [`vars/personal.yml`](vars/personal.yml) and
+[`vars/work.yml`](vars/work.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
 - `shell_aliases`, `env_vars`
 - `directories`
 - `git_user_name`, `git_user_email`, `git_settings`
 
+`setup_scopes` selects which overlays are appended to the common lists. It
+defaults to `personal`; select `work`, or combine both scopes, without copying
+the common package inventory:
+
+```bash
+# Common packages plus the personal overlay (default)
+ansible-playbook mac-setup.yml
+
+# Common packages plus the work overlay
+ansible-playbook mac-setup.yml -e '{"setup_scopes":["work"]}'
+
+# Common packages plus both overlays
+ansible-playbook mac-setup.yml \
+  -e '{"setup_scopes":["personal","work"]}'
+```
+
+Package lists are de-duplicated after the selected overlays are appended. Keep
+software used everywhere in `vars.yml`; move only genuinely scope-specific
+entries into the matching overlay file.
+
 Customize:
-1. Edit `vars.yml` directly.
-2. Use a custom vars file: `ansible-playbook mac-setup.yml -e @my-vars.yml`
-3. Override specific variables: `ansible-playbook mac-setup.yml -e git_user_email=me@example.com`
+1. Edit `vars.yml` for common settings.
+2. Edit `vars/personal.yml` or `vars/work.yml` for scoped packages.
+3. Use a custom vars file: `ansible-playbook mac-setup.yml -e @my-vars.yml`
+4. Override specific variables: `ansible-playbook mac-setup.yml -e git_user_email=me@example.com`
 
 ## Usage
 

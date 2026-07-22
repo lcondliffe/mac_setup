@@ -1,4 +1,9 @@
 ---
+# Optional package overlays. vars.yml remains the common baseline; selected
+# scopes append entries from vars/personal.yml and vars/work.yml.
+setup_scopes:
+  - personal
+
 # Mac System Environment Variables (non-secret)
 env_vars:
   SKIP: "terraform_checkov,end-of-file-fixer"

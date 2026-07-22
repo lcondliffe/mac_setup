@@ -5,8 +5,44 @@
   gather_facts: true
   vars_files:
     - vars.yml
+    - vars/personal.yml
+    - vars/work.yml
 
   tasks:
+    - name: Validate selected setup scopes
+      ansible.builtin.assert:
+        that:
+          - setup_scopes is sequence
+          - setup_scopes is not string
+          - setup_scopes | difference(['personal', 'work']) | length == 0
+        fail_msg: >-
+          setup_scopes must be a list containing only 'personal' and/or 'work'.
+      tags: [always]
+
+    - name: Assemble common and scoped package lists
+      ansible.builtin.set_fact:
+        homebrew_taps: >-
+          {{ (homebrew_taps
+              + (personal_homebrew_taps if 'personal' in setup_scopes else [])
+              + (work_homebrew_taps if 'work' in setup_scopes else [])) | unique | list }}
+        homebrew_formulae: >-
+          {{ (homebrew_formulae
+              + (personal_homebrew_formulae if 'personal' in setup_scopes else [])
+              + (work_homebrew_formulae if 'work' in setup_scopes else [])) | unique | list }}
+        homebrew_casks: >-
+          {{ (homebrew_casks
+              + (personal_homebrew_casks if 'personal' in setup_scopes else [])
+              + (work_homebrew_casks if 'work' in setup_scopes else [])) | unique | list }}
+        pipx_packages: >-
+          {{ (pipx_packages
+              + (personal_pipx_packages if 'personal' in setup_scopes else [])
+              + (work_pipx_packages if 'work' in setup_scopes else [])) | unique | list }}
+        vscode_extensions: >-
+          {{ (vscode_extensions
+              + (personal_vscode_extensions if 'personal' in setup_scopes else [])
+              + (work_vscode_extensions if 'work' in setup_scopes else [])) | unique | list }}
+      tags: [always]
+
     - name: SSH key gate (prerequisite check; prompts if no key exists)
       ansible.builtin.include_tasks: tasks/ssh.yml
       tags: [always, ssh]

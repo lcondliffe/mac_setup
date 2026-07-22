@@ -1,0 +1,8 @@
+---
+# Packages and tools used only on personal machines.
+# Enable with: -e '{"setup_scopes":["personal"]}'
+personal_homebrew_taps: []
+personal_homebrew_formulae: []
+personal_homebrew_casks: []
+personal_pipx_packages: []
+personal_vscode_extensions: []
