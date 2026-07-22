@@ -27,7 +27,7 @@
         </dict>"
       echo "CHANGED"
   register: symbolichotkeys_result
-  changed_when: "'CHANGED' in symbolichotkeys_result.stdout"
+  changed_when: (symbolichotkeys_result.stdout | trim) == 'CHANGED'
   loop: "{{ screenshot_hotkeys }}"
   loop_control:
     label: "{{ item.name }}"

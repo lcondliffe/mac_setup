@@ -41,16 +41,19 @@
     # tasks/homebrew.yml, so they are expected even though not in vars.yml
     audit_workaround_formulae: [codex, httpie]
     # vars.yml entries may be tap-qualified (hashicorp/tap/terraform) while
-    # brew reports short names, so strip the tap prefix before comparing
+    # brew may report either short or tap-qualified names, so normalize both
+    # sides to the final formula token before comparing.
     want_formulae: "{{ (homebrew_formulae + audit_workaround_formulae) | map('regex_replace', '^.*/', '') | list }}"
+    have_requested_formulae: "{{ audit_brew_leaves.stdout_lines | map('regex_replace', '^.*/', '') | list }}"
+    have_formulae: "{{ audit_brew_formulae.stdout_lines | map('regex_replace', '^.*/', '') | list }}"
     want_casks: "{{ homebrew_casks | map('regex_replace', '^.*/', '') | list }}"
     want_extensions: "{{ vscode_extensions | map('lower') | list }}"
     have_extensions: "{{ audit_code_extensions.stdout_lines | default([]) | map('lower') | list }}"
     have_pipx: "{{ audit_pipx.stdout_lines | default([]) | map('regex_replace', ' .*$', '') | list }}"
   ansible.builtin.debug:
     msg:
-      formulae_installed_but_not_in_vars: "{{ audit_brew_leaves.stdout_lines | difference(want_formulae) | sort }}"
-      formulae_in_vars_but_not_installed: "{{ want_formulae | difference(audit_brew_formulae.stdout_lines) | sort }}"
+      formulae_installed_but_not_in_vars: "{{ have_requested_formulae | difference(want_formulae) | sort }}"
+      formulae_in_vars_but_not_installed: "{{ want_formulae | difference(have_formulae) | sort }}"
       casks_installed_but_not_in_vars: "{{ audit_brew_casks.stdout_lines | difference(want_casks) | sort }}"
       casks_in_vars_but_not_installed: "{{ want_casks | difference(audit_brew_casks.stdout_lines) | sort }}"
       vscode_installed_but_not_in_vars: "{{ have_extensions | difference(want_extensions) | sort }}"
