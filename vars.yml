@@ -22,6 +22,60 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
+# Hermes agents (Nous Research): one on-device profile per hermes_agents entry.
+# No secrets in git — `auth: true` triggers a one-time OAuth login to
+# ~/.hermes/auth.json. gpt-5.6-sol needs the openai-codex provider (not an API key).
+# Add an agent = append a list entry (name lowercase/alphanumeric).
+hermes_install_enabled: true
+
+# Rolling install tracking a branch (no release tags). Upgrade opt-in via
+# `-t upgrade` (runs `hermes update`). hermes_version is a reference label only.
+hermes_version: "0.19.0"
+hermes_git_branch: main
+
+# OAuth login gate; -e hermes_auth_enabled=false for unattended runs.
+hermes_auth_enabled: true
+
+# This machine's sticky-default profile.
+hermes_default_profile: mack
+
+hermes_agents:
+  - name: mack
+    description: "Main personal on-device agent."
+    provider: openai-codex
+    model: openai/gpt-5.6-sol
+    auth: true
+    # Per-profile launchd user service (no sudo) running the cron scheduler;
+    # starts on login. false = scheduler off, crons stay inert.
+    gateway: true
+    persona: |
+      # Mack
+
+      Managed by Ansible. You are Mack, Luke's main personal agent, running
+      on-device on his Mac. You are practical, direct, and proactive.
+    # Scheduled jobs, reconciled by name; fire only when the gateway runs.
+    # Fields: name, schedule (cron expr or '30m'), prompt, optional deliver + skills.
+    crons:
+      # DRAFT: needs calendar (MCP) + notebook access to be useful.
+      - name: daily-standup
+        schedule: "0 8 * * *"
+        deliver: local
+        skills:
+          - note-taking
+        prompt: >-
+          It's the start of my working day. Summarise what we worked on
+          yesterday (check recent notes and past sessions), then draft a rough
+          agenda for today: 3-5 prioritised items plus any calendar events.
+          Keep it concise. NOTE: this is a draft — calendar access (via an MCP
+          server) and notebook access still need wiring up, so use whatever is
+          available and clearly flag anything you could not access.
+  # Add more agents here, e.g.:
+  # - name: scout
+  #   description: "Lightweight research agent."
+  #   provider: openrouter
+  #   model: openai/gpt-5.6-sol
+  #   auth: false
+
 # SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
 # to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
 ssh_gate_enabled: true
@@ -47,21 +101,26 @@ homebrew_taps:
   - hashicorp/tap
   - homebrew/services
   - infisical/get-cli
+  - lcondliffe/tap
   - siderolabs/tap
   - supabase/tap
   - terraform-linters/tap
 
 # Homebrew formulae (CLI tools)
 homebrew_formulae:
+  - actionlint
   - ansible
   - ansible-lint
   - azure-cli
   - azure/functions/azure-functions-core-tools@4
+  - bash
   - bat                                   # https://github.com/sharkdp/bat
   - cmake
   - curl
   - dockutil                              # https://github.com/kcrawford/dockutil
   - eza                                   # https://github.com/eza-community/eza
+  - ffmpeg
+  - flex
   - fluxcd/tap/flux
   - fzf                                   # https://github.com/junegunn/fzf
   - gemini-cli
@@ -75,34 +134,42 @@ homebrew_formulae:
   - graphviz
   - hashicorp/tap/terraform
   - helm
+  - hugo
   - infisical/get-cli/infisical
   - jq
   - json-c
-  - kubectl
+  - kagent
+  - kind
+  - kubernetes-cli
   - kubectx
+  - lcondliffe/tap/gitling
   - libpq
   - ncdu                                  # https://github.com/rofl0r/ncdu
+  - oci-cli
+  - opencode
   - ossp-uuid
   - pipx
   - pkgconf
   - podman
   - podman-compose
+  - powershell
   - pre-commit
   - python@3.14
+  - sshpass
+  - terraform-docs
   - tokei                                 # https://github.com/xampprocky/tokei
   - uv
   - yamllint
+  - yq
   - zsh
 
 # Homebrew casks (GUI apps)
 homebrew_casks:
-  - chatgpt-atlas
   - claude
   - claude-code
-  - cursor
   - drawio
+  - emdash
   - gcloud-cli
-  - godot
   - google-chrome
   - lens
   - maccy
@@ -114,17 +181,13 @@ homebrew_casks:
   - scroll-reverser
   - terraform-linters/tap/tflint
   - twingate
-  - unnaturalscrollwheels
   - visual-studio-code
   - warp
   - zoom
 
 # pipx packages to install
 pipx_packages:
-  - black
-  - isort
   - jmespath
-  - kubediagrams
 
 # vscode extensions to install
 vscode_extensions:
@@ -134,19 +197,11 @@ vscode_extensions:
   - github.vscode-github-actions
   - hashicorp.terraform                   # HashiCorp Terraform
   - matheusq94.tfs                        # Terraform Format on Save
-  - ms-azure-devops.azure-pipelines       # Azure Pipelines
-  - ms-azuretools.vscode-azurefunctions
-  - ms-azuretools.vscode-azureresourcegroups
-  - ms-python.debugpy
-  - ms-python.python
-  - ms-python.vscode-pylance
-  - ms-python.vscode-python-envs
   - ms-vscode-remote.remote-ssh
   - ms-vscode-remote.remote-ssh-edit
   - ms-vscode.powershell                  # PowerShell
   - ms-vscode.remote-explorer
   - pkief.material-icon-theme
-  - saoudrizwan.claude-dev
 
 # macOS screenshot keyboard shortcuts (com.apple.symbolichotkeys)
 # Swaps the defaults so the simple combos copy to the clipboard, and the
