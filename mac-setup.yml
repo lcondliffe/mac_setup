@@ -47,6 +47,10 @@
       ansible.builtin.include_tasks: tasks/hermes.yml
       tags: [hermes, upgrade]
 
+    - name: Obsidian daily journal
+      ansible.builtin.include_tasks: tasks/obsidian.yml
+      tags: [obsidian]
+
     - name: VSCode extensions
       ansible.builtin.include_tasks: tasks/vscode_extensions.yml
       tags: [vscode]

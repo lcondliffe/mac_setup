@@ -16,6 +16,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - pipx packages
 - `krew` (kubectl plugin manager) install + PATH
 - VSCode extensions
+- Obsidian daily journalling: configures Daily Notes to create `Journal/YYYY-MM-DD.md` from a concise, emoji-headed template
 - Hermes agents: installs the Hermes CLI (rolling, tracks `hermes_git_branch`) and configures one on-device profile per entry in `hermes_agents` (default `mack`, using model `gpt-5.6-sol` via the `openai-codex` OAuth provider). Adding an agent is a single `hermes_agents` list entry. Each agent can declare `crons` (scheduled jobs, reconciled by name into `<profile>/cron/jobs.json`) — e.g. a `daily-standup` at 08:00. An agent with `gateway: true` gets a per-profile launchd **user** service (no sudo) that runs the cron scheduler and starts on login, so its crons actually fire. Upgrades are opt-in via `-t upgrade` (runs `hermes update`: pulls latest, reinstalls deps, re-syncs skills, migrates config). The subscription credential is **not** stored in git — each agent with `auth: true` triggers a **one-time interactive OAuth login** saved to `~/.hermes/auth.json`.
   - The bundled `daily-standup` cron is a **draft**: the scheduler runs it, but it needs the agent's OAuth login completed, plus calendar access (add an MCP calendar server with `hermes mcp add`) and notebook access (the `note-taking` skill is installed), before it produces a useful brief.
 
@@ -27,6 +28,7 @@ All knobs live in [`vars.yml`](vars.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
 - `hermes_agents`, `hermes_default_profile`, `hermes_auth_enabled`
+- `obsidian_vault_path`, `obsidian_journal_folder`, `obsidian_templates_folder`
 - `shell_aliases`, `env_vars`
 - `directories`
 - `git_user_name`, `git_user_email`, `git_settings`
@@ -66,6 +68,7 @@ Targeted runs with tags (faster, incremental):
 | `pipx` | pipx packages |
 | `kubectl` | krew install + PATH |
 | `hermes` | Install Hermes + configure agent profiles/models from `hermes_agents`; interactive OpenAI (Codex) login gate |
+| `obsidian` | Daily journal folders, template, and Daily Notes/Templates settings |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
 | `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |

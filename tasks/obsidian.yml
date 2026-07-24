@@ -1,0 +1,32 @@
+- name: Ensure the Obsidian vault structure exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ obsidian_vault_path }}"
+    - "{{ obsidian_vault_path }}/.obsidian"
+    - "{{ obsidian_vault_path }}/{{ obsidian_journal_folder }}"
+    - "{{ obsidian_vault_path }}/{{ obsidian_templates_folder }}"
+  tags: [obsidian]
+
+- name: Install the Obsidian daily journal template
+  ansible.builtin.copy:
+    src: "obsidian/Daily Journal.md"
+    dest: "{{ obsidian_vault_path }}/{{ obsidian_templates_folder }}/Daily Journal.md"
+    mode: "0644"
+  tags: [obsidian]
+
+- name: Configure Obsidian Daily Notes
+  ansible.builtin.copy:
+    content: "{{ obsidian_daily_notes_config | to_nice_json }}\n"
+    dest: "{{ obsidian_vault_path }}/.obsidian/daily-notes.json"
+    mode: "0644"
+  tags: [obsidian]
+
+- name: Configure the Obsidian Templates folder
+  ansible.builtin.copy:
+    content: "{{ {'folder': obsidian_templates_folder} | to_nice_json }}\n"
+    dest: "{{ obsidian_vault_path }}/.obsidian/templates.json"
+    mode: "0644"
+  tags: [obsidian]
