@@ -72,7 +72,7 @@ hermes_agents:
         schedule: "0 8 * * *"
         deliver: local
         skills:
-          - daily-journaling
+          - obsidian
         enabled_toolsets:
           - file
           - session_search
