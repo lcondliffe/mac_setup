@@ -86,6 +86,27 @@ ansible-playbook --syntax-check mac-setup.yml
 ansible-playbook --check mac-setup.yml
 ```
 
+## Testing on a clean machine
+
+[`test/vm_test.sh`](test/README.md) runs the whole thing against a throwaway
+macOS VM ([Tart](https://tart.run)): it clones a base image, boots it headless,
+runs `bootstrap_mac.sh` from nothing, re-runs the playbook to assert
+`changed=0`, and checks the resulting end state against `vars.yml`.
+
+```bash
+test/vm_test.sh --minimal --touchid
+```
+
+`--minimal` swaps in [`test/test-vars.yml`](test/test-vars.yml), which trims the
+package lists to a handful of small formulae plus one tap and one cask — every
+task still runs for real, without a 20GB Homebrew download. Drop it to test the
+full package lists.
+
+Needs `tart` + `sshpass` and a base image (`tart clone
+ghcr.io/cirruslabs/macos-tahoe-base:latest tahoe-base`). See
+[`test/README.md`](test/README.md) for options, the two prompts that get
+stubbed out, and disk-space expectations.
+
 ## SSH key gate
 
 An SSH key is treated as a prerequisite: every run starts with a check for a private key in `~/.ssh` (`id_ed25519` / `id_ecdsa` / `id_rsa`). If none exists you're prompted to either type `generate` (creates a passphrase-less ed25519 key and prints the public key to add to GitHub) or press Enter to abort and import an existing key first. Non-interactive runs abort with the same instructions; pass `-e ssh_gate_action=generate` to generate unattended. Bypass the gate entirely with `-e ssh_gate_enabled=false`.

@@ -37,9 +37,9 @@
 
 - name: Report drift between vars.yml and this machine
   vars:
-    # codex/httpie are installed by the broken-cask workaround in
-    # tasks/homebrew.yml, so they are expected even though not in vars.yml
-    audit_workaround_formulae: [codex, httpie]
+    # httpie is installed by the broken-cask workaround in tasks/homebrew.yml,
+    # so it is expected even though it is not in vars.yml
+    audit_workaround_formulae: [httpie]
     # vars.yml entries may be tap-qualified (hashicorp/tap/terraform) while
     # brew may report either short or tap-qualified names, so normalize both
     # sides to the final formula token before comparing.

@@ -7,3 +7,6 @@
 # Local-only overrides (e.g. ansible-playbook -e @my-vars.yml)
 my-vars.yml
 *.local.yml
+
+# Test harness logs (test/vm_test.sh)
+test/logs/

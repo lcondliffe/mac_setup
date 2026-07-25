@@ -32,7 +32,6 @@
     cmd: "brew install --formula {{ item.name }}"
     creates: "{{ item.creates }}"
   loop:
-    - { name: codex, creates: /opt/homebrew/bin/codex }
     - { name: httpie, creates: /opt/homebrew/bin/http }
   tags: [homebrew, packages, formulae]
 

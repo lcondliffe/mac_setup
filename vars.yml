@@ -197,6 +197,9 @@ homebrew_formulae:
 homebrew_casks:
   - claude
   - claude-code
+  # Migrated from homebrew/core to homebrew/cask upstream. If an old formula
+  # build lingers, clear it first: brew uninstall --formula codex
+  - codex
   - drawio
   - emdash
   - gcloud-cli
