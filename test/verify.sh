@@ -96,6 +96,8 @@ check "templates folder created" "[ -d '$vault/$templates_folder' ]"
 check "daily journal template"   "[ -s '$vault/$templates_folder/Daily Journal.md' ]"
 check "daily-notes plugin config" \
   "grep -q '$journal_folder' '$vault/.obsidian/daily-notes.json'"
+check "journal core plugins enabled" \
+  "grep -q daily-notes '$vault/.obsidian/core-plugins.json' && grep -q templates '$vault/.obsidian/core-plugins.json'"
 
 echo "== macOS defaults =="
 check "Finder shows all extensions" \

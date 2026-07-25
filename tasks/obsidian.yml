@@ -30,3 +30,29 @@
     dest: "{{ obsidian_vault_path }}/.obsidian/templates.json"
     mode: "0644"
   tags: [obsidian]
+
+- name: Check enabled Obsidian core plugins
+  ansible.builtin.stat:
+    path: "{{ obsidian_vault_path }}/.obsidian/core-plugins.json"
+  register: obsidian_core_plugins_file
+  tags: [obsidian]
+
+- name: Read enabled Obsidian core plugins
+  ansible.builtin.slurp:
+    src: "{{ obsidian_vault_path }}/.obsidian/core-plugins.json"
+  register: obsidian_core_plugins_raw
+  when: obsidian_core_plugins_file.stat.exists
+  tags: [obsidian]
+
+- name: Enable Obsidian Daily Notes and Templates
+  ansible.builtin.copy:
+    content: >-
+      {{ (
+        (
+          (obsidian_core_plugins_raw.content | b64decode | from_json)
+          if obsidian_core_plugins_file.stat.exists else []
+        ) + ['daily-notes', 'templates']
+      ) | unique | to_nice_json }}
+    dest: "{{ obsidian_vault_path }}/.obsidian/core-plugins.json"
+    mode: "0644"
+  tags: [obsidian]
