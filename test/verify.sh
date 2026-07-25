@@ -8,6 +8,31 @@ ok()   { printf '  PASS  %s\n' "$1"; pass=$((pass + 1)); }
 bad()  { printf '  FAIL  %s\n' "$1"; failed=$((failed + 1)); }
 check() { if eval "$2" >/dev/null 2>&1; then ok "$1"; else bad "$1"; fi; }
 
+resolved_vars="$(mktemp)"
+trap 'rm -f "$resolved_vars"' EXIT
+if ! ANSIBLE_DEPRECATION_WARNINGS=false ansible-playbook -i localhost, \
+  test/resolve_vars.yml "$@" -e ansible_python_interpreter=auto_silent \
+  -e "resolved_vars_path=$resolved_vars" >/dev/null; then
+  echo "  FAIL  could not resolve test expectations"
+  exit 1
+fi
+json_value() {
+  python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' \
+    "$resolved_vars" "$1"
+}
+configured_crons_present() {
+  python3 - "$resolved_vars" "$1" <<'PY'
+import json
+import sys
+
+expected = set(json.load(open(sys.argv[1]))["cron_names"])
+if not expected:
+    raise SystemExit(0)
+actual = {job["name"] for job in json.load(open(sys.argv[2])).get("jobs", [])}
+raise SystemExit(not expected <= actual)
+PY
+}
+
 echo "== Home directory structure =="
 for d in ansible ansible/playbooks ansible/roles repo repo/private repo/public \
          repo/training scripts temp; do
@@ -44,26 +69,33 @@ check "ed25519 private key generated" "[ -f \"\$HOME/.ssh/id_ed25519\" ]"
 check "ed25519 public key generated"  "[ -f \"\$HOME/.ssh/id_ed25519.pub\" ]"
 
 echo "== Hermes =="
-check "hermes binary installed"    "[ -x \"\$HOME/.local/bin/hermes\" ]"
-check "mack profile exists"        "\$HOME/.local/bin/hermes profile list | grep -q mack"
-check "mack is the active profile" "grep -q '^mack\$' \"\$HOME/.hermes/active_profile\""
-mack_dir="$(hermes profile show mack 2>/dev/null | sed -nE 's/.*Path:[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)"
-if [ -n "$mack_dir" ]; then
-  check "managed SOUL.md written"       "[ -s '$mack_dir/SOUL.md' ]"
-  check "daily-standup cron registered" "grep -q daily-standup '$mack_dir/cron/jobs.json'"
+profile="$(json_value profile)"
+check "hermes binary installed" "[ -x \"\$HOME/.local/bin/hermes\" ]"
+check "$profile profile exists" "hermes profile list | grep -qx '$profile'"
+check "$profile is active" "grep -qx '$profile' \"\$HOME/.hermes/active_profile\""
+profile_dir="$(hermes profile show "$profile" 2>/dev/null | sed -nE 's/.*Path:[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)"
+if [ -n "$profile_dir" ]; then
+  if [ "$(json_value persona)" = True ]; then
+    check "managed SOUL.md written" "[ -s '$profile_dir/SOUL.md' ]"
+  fi
+  check "configured crons registered" \
+    "configured_crons_present '$profile_dir/cron/jobs.json'"
 else
-  bad "could not resolve the mack profile path"
+  bad "could not resolve the $profile profile path"
 fi
-check "gateway launchd service loaded" \
-  "launchctl list | grep -qi hermes"
+if [ "$(json_value gateway)" = True ]; then
+  check "gateway launchd service loaded" "launchctl list | grep -qi hermes"
+fi
 
 echo "== Obsidian =="
-vault="$HOME/Documents/Obsidian Vault"
-check "journal folder created"   "[ -d '$vault/Journal' ]"
-check "templates folder created" "[ -d '$vault/Templates' ]"
-check "daily journal template"   "[ -s '$vault/Templates/Daily Journal.md' ]"
+vault="$(json_value vault)"
+journal_folder="$(json_value journal_folder)"
+templates_folder="$(json_value templates_folder)"
+check "journal folder created"   "[ -d '$vault/$journal_folder' ]"
+check "templates folder created" "[ -d '$vault/$templates_folder' ]"
+check "daily journal template"   "[ -s '$vault/$templates_folder/Daily Journal.md' ]"
 check "daily-notes plugin config" \
-  "grep -q Journal '$vault/.obsidian/daily-notes.json'"
+  "grep -q '$journal_folder' '$vault/.obsidian/daily-notes.json'"
 
 echo "== macOS defaults =="
 check "Finder shows all extensions" \
