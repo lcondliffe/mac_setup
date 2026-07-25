@@ -1,10 +1,4 @@
-"""Turn the playbook's `audit` tag output into pass/fail lines.
-
-Reads the JSON-callback output of `ansible-playbook mac-setup.yml -t audit` on
-stdin. Anything declared in vars.yml but not installed is a failure; extra
-packages are drift on a real machine, not a test failure, so they're ignored.
-Exits non-zero if anything declared is missing.
-"""
+"""Fail when the playbook's JSON audit reports declared packages missing."""
 
 import json
 import sys

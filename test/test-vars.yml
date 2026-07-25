@@ -1,21 +1,7 @@
 ---
-# Cut-down package lists for the VM test harness (test/vm_test.sh --minimal).
-#
-# The point of the VM test is to prove the *playbook* behaves on a clean Mac —
-# not to re-download 20GB of Homebrew every run. This overrides only the package
-# lists and the Dock layout; everything else (aliases, env, git settings, Hermes,
-# Obsidian, macOS defaults) still comes from vars.yml and is tested for real.
-#
-# Used as: ansible-playbook mac-setup.yml -e @test/test-vars.yml
-# Extra vars win over vars_files, so any key omitted here falls back to vars.yml.
-#
-# What's kept, and why:
-#   - one tap, one cask, a handful of small formulae — enough to exercise every
-#     Homebrew code path (tap / formula / cask) without the download bill
-#   - dockutil        : the Dock layout task shells out to it
-#   - git-delta       : git_settings sets core.pager=delta
-#   - kubernetes-cli  : the krew task verifies with `kubectl krew version`
-#   - pipx            : the pipx task needs it on PATH
+# Minimal package set for `vm_test.sh --minimal`.
+# Covers tap/formula/cask paths and tools required by downstream tasks.
+# Other values inherit vars.yml because this file is passed as extra vars.
 
 homebrew_taps:
   - lcondliffe/tap
@@ -30,16 +16,13 @@ homebrew_formulae:
 homebrew_casks:
   - scroll-reverser
 
-# VSCode isn't installed in minimal mode, so the vscode task takes its
-# "not available" branch. Empty keeps the drift audit clean.
+# Exercise VSCode's unavailable branch without audit drift.
 vscode_extensions: []
 
 pipx_packages:
   - jmespath
 
-# vars.yml pins apps that only exist once the full cask list is installed.
-# A clean macOS image has Safari plus the /System/Applications bundles, so the
-# Dock layout task still runs for real against paths that exist.
+# System apps keep Dock testing independent of optional casks.
 dock_apps:
   - /Applications/Safari.app
   - /System/Applications/Notes.app

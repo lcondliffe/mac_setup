@@ -8,5 +8,6 @@
 my-vars.yml
 *.local.yml
 
-# Test harness logs (test/vm_test.sh)
+# VM test artifacts
 test/logs/
+__pycache__/

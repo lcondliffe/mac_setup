@@ -66,8 +66,7 @@ hermes_agents:
       `Templates/Daily Journal.md` and preserve its structure. Use 🏠 by default;
       change it to 🏢 only when Luke says he is at the office.
     # Scheduled jobs, reconciled by name; fire only when the gateway runs.
-    # Fields: name, schedule (cron expr or '30m'), prompt, optional deliver,
-    # skills, workdir, and enabled_toolsets.
+    # Optional fields: deliver, skills, workdir, enabled_toolsets.
     crons:
       - name: daily-standup
         schedule: "0 8 * * *"
@@ -95,9 +94,7 @@ hermes_agents:
   #   model: openai/gpt-5.6-sol
   #   auth: false
 
-# Obsidian daily journalling. Daily Notes uses the managed template and creates
-# notes as Journal/YYYY-MM-DD.md. The title defaults to 🏠 and can be changed to
-# 🏢 on office days.
+# Daily Notes creates Journal/YYYY-MM-DD.md from the managed template.
 obsidian_vault_path: "{{ ansible_env.HOME }}/Documents/Obsidian Vault"
 obsidian_journal_folder: Journal
 obsidian_templates_folder: Templates
@@ -197,8 +194,7 @@ homebrew_formulae:
 homebrew_casks:
   - claude
   - claude-code
-  # Migrated from homebrew/core to homebrew/cask upstream. If an old formula
-  # build lingers, clear it first: brew uninstall --formula codex
+  # Remove a stale formula first: brew uninstall --formula codex
   - codex
   - drawio
   - emdash

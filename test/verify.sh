@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
-# End-state assertions, run *inside* the test VM after the playbook.
-# Package coverage is derived from vars.yml via the playbook's own `audit` tag,
-# so this file only hardcodes the things audit doesn't cover.
-#
-# Usage (from the repo root, inside the VM):
-#   bash test/verify.sh                          # against vars.yml
-#   bash test/verify.sh -e @test/test-vars.yml   # against the cut-down lists
-# Any arguments are passed through to the audit run, so it compares against the
-# same vars the playbook was given.
+# Assert end state not covered by the playbook audit; pass extra vars to audit.
 
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$HOME/.krew/bin:$PATH"
 
@@ -41,8 +33,7 @@ check "pull.rebase = true"   "[ \"\$(git config --global pull.rebase)\" = true ]
 check "credential.helper"    "[ \"\$(git config --global credential.helper)\" = osxkeychain ]"
 
 echo "== Tooling on PATH =="
-# Only things every run installs regardless of the vars file — the package lists
-# themselves are checked against vars.yml by the audit section at the bottom.
+# Package lists are checked by the audit below.
 for bin in brew git ansible-playbook; do
   check "$bin on PATH" "command -v $bin"
 done

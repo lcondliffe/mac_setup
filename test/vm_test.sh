@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run the playbook end-to-end against a throwaway macOS VM (Tart), to prove it
-# behaves on a clean system. Clones a base image, boots it headless, syncs this
-# repo in, runs bootstrap_mac.sh, then runs the playbook a second time to check
-# idempotency (changed=0), and finally asserts the expected end state.
-#
-#   test/vm_test.sh                      # full clean-machine run
-#   test/vm_test.sh --tags dirs,env,git  # fast subset
-#   test/vm_test.sh --reuse --keep       # iterate against an existing test VM
-#
-# The base image is only ever cloned, never modified.
+# Clone a Tart VM, bootstrap it, verify idempotency, then assert end state.
 
 BASE_VM="${BASE_VM:-tahoe-base}"
 TEST_VM="${TEST_VM:-mac-setup-test}"
@@ -31,8 +22,10 @@ TEST_TOUCHID=false
 BOOT_TIMEOUT="${BOOT_TIMEOUT:-300}"
 
 usage() {
-  sed -n '3,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   cat <<'EOF'
+Run mac_setup end-to-end in a disposable Tart VM.
+
+Usage: test/vm_test.sh [options]
 
 Options:
   --base NAME         Base VM to clone (default: tahoe-base, or $BASE_VM)
@@ -76,18 +69,15 @@ log()  { printf '%s==>%s %s\n' "$BOLD" "$RESET" "$*"; }
 warn() { printf '%s==>%s %s\n' "$YELLOW" "$RESET" "$*"; }
 fail() { printf '%s==>%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
 
-# PubkeyAuthentication=no / IdentitiesOnly=yes stop ssh from offering every key
-# in the agent first, which trips sshd's "Too many authentication failures"
-# before it ever gets to the password.
+# Avoid exhausting sshd attempts on keys from the host agent.
 SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
           -o LogLevel=ERROR -o ConnectTimeout=10 -o ServerAliveInterval=30
           -o PubkeyAuthentication=no -o IdentitiesOnly=yes
           -o PreferredAuthentications=password -o NumberOfPasswordPrompts=1)
 VM_IP=""
 
-TEST_KEY=""   # set once key auth is in place; until then, password auth
+TEST_KEY=""  # Empty until the ephemeral key is installed.
 
-# The ssh invocation as an array, so rsync -e and vm_ssh stay in step.
 ssh_argv() {
   if [[ -n "$TEST_KEY" ]]; then
     printf 'ssh %s' "${SSH_OPTS[*]}"
@@ -105,9 +95,7 @@ vm_ssh() {
   fi
 }
 
-# `tart list --format json` pretty-prints as `"Name" : "foo"`, hence the [[:space:]]*.
-# Output is captured rather than piped: `grep -q` exits on the first match, and
-# the resulting SIGPIPE would trip `pipefail` into a false negative.
+# Capture first to avoid grep's early exit tripping pipefail via SIGPIPE.
 vm_exists() {
   local listing
   listing="$(tart list --format json 2>/dev/null)" || return 1
@@ -176,10 +164,7 @@ log "Waiting for an IP address"
 VM_IP="$(tart ip "$TEST_VM" --wait "$BOOT_TIMEOUT")" || fail "VM never got an IP"
 log "VM IP: $VM_IP"
 
-# Probe the TCP port before trying to authenticate. sshd accepts connections
-# well before the login stack can authenticate, and every failed password
-# attempt counts against sshd's PerSourcePenalties (OpenSSH 9.8+) — enough of
-# them and the host gets blocked for the rest of the run.
+# Wait for sshd before password attempts; OpenSSH penalises repeated failures.
 log "Waiting for port 22"
 for _ in $(seq 1 60); do
   nc -z -G 5 "$VM_IP" 22 2>/dev/null && break
@@ -197,8 +182,7 @@ for attempt in $(seq 1 20); do
 done
 [[ "$ssh_ready" == true ]] || fail "SSH to $VM_IP never authenticated. Last error: $ssh_err"
 
-# Swap to key auth for the rest of the run: the playbook takes a long time over
-# many connections, and password auth is both slower and penalty-prone.
+# Avoid repeated password authentication during the long playbook run.
 log "Installing a throwaway SSH key for the run"
 test_key="$RUN_LOG_DIR/id_vmtest"
 ssh-keygen -q -t ed25519 -N '' -f "$test_key" -C mac_setup-vm-test
@@ -222,9 +206,7 @@ rsync -az --delete \
 
 # --- run 1: bootstrap on a clean machine -----------------------------------
 
-# Non-interactive overrides. The SSH gate and the Hermes OAuth gate both pause
-# for input on a fresh machine; these turn them into unattended paths. The vars
-# file goes first: with ansible, the last -e wins.
+# Make the SSH and OAuth gates unattended; later extra vars take precedence.
 PB_VARS=""
 [[ -n "$VARS_FILE" ]] && PB_VARS="-e @$VARS_FILE "
 PB_VARS+='-e ssh_gate_action=generate -e hermes_auth_enabled=false'
@@ -276,8 +258,7 @@ verify_rc=""
 if [[ "$RUN_VERIFY" == true ]]; then
   log "Verifying end state"
   set +e
-  # verify.sh reuses the playbook's `audit` tag for package coverage, so it
-  # needs the same vars file to compare against the right lists.
+  # Keep verification and playbook package inputs aligned.
   verify_args=""
   [[ -n "$VARS_FILE" ]] && verify_args="-e @$VARS_FILE"
   vm_ssh "cd $GUEST_REPO && bash test/verify.sh $verify_args" 2>&1 | tee "$RUN_LOG_DIR/verify.log"
