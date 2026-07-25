@@ -5,6 +5,7 @@
 - name: Record the hermes binary path
   ansible.builtin.set_fact:
     hermes_bin: "{{ ansible_env.HOME }}/.local/bin/hermes"
+    hermes_python: "{{ ansible_env.HOME }}/.hermes/hermes-agent/venv/bin/python"
   tags: [hermes, upgrade]
 
 - name: Install Hermes agent (upstream install.sh)

@@ -66,21 +66,28 @@ hermes_agents:
       `Templates/Daily Journal.md` and preserve its structure. Use 🏠 by default;
       change it to 🏢 only when Luke says he is at the office.
     # Scheduled jobs, reconciled by name; fire only when the gateway runs.
-    # Fields: name, schedule (cron expr or '30m'), prompt, optional deliver + skills.
+    # Fields: name, schedule (cron expr or '30m'), prompt, optional deliver,
+    # skills, workdir, and enabled_toolsets.
     crons:
-      # DRAFT: needs calendar (MCP) + notebook access to be useful.
       - name: daily-standup
         schedule: "0 8 * * *"
         deliver: local
         skills:
-          - note-taking
+          - daily-journaling
+        enabled_toolsets:
+          - file
+          - session_search
+        workdir: "{{ obsidian_vault_path }}/{{ obsidian_journal_folder }}"
         prompt: >-
-          It's the start of my working day. Summarise what we worked on
-          yesterday (check recent notes and past sessions), then draft a rough
-          agenda for today: 3-5 prioritised items plus any calendar events.
-          Keep it concise. NOTE: this is a draft — calendar access (via an MCP
-          server) and notebook access still need wiring up, so use whatever is
-          available and clearly flag anything you could not access.
+          Draft a concise start-of-day brief with 3-5 prioritised plan
+          suggestions. Use only yesterday's single daily note at
+          /Users/luke/Documents/Obsidian Vault/Journal/YYYY-MM-DD.md, if it
+          exists, plus Hermes session_search for yesterday's work. Do not use
+          terminal, search_files, or inspect any directory. Do not access
+          Photos, Media Library, Desktop, Downloads, Application Data, or any
+          file outside the Journal folder. Do not look for calendar events
+          until a calendar integration is explicitly configured. Return the
+          brief only; do not modify the journal.
   # Add more agents here, e.g.:
   # - name: scout
   #   description: "Lightweight research agent."

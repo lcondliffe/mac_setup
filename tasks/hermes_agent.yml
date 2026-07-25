@@ -78,7 +78,7 @@
 
 # --- Scheduled jobs (crons) ---
 # Reconciled by name into <profile>/cron/jobs.json; fire only once the gateway
-# runs. Existing jobs left untouched (change via `hermes cron edit|remove`).
+# runs. Existing managed jobs are updated when their declaration changes.
 - name: Read existing scheduled jobs for {{ agent.name }}
   ansible.builtin.slurp:
     src: "{{ hermes_profile_path }}/cron/jobs.json"
@@ -87,11 +87,17 @@
   when: agent.crons | default([]) | length > 0
   tags: [hermes]
 
+- name: Compute existing cron jobs for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_cron_jobs: >-
+      {{ (hermes_jobs_raw.content | b64decode | from_json).jobs
+         if (hermes_jobs_raw.content is defined) else [] }}
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
 - name: Compute existing cron names for {{ agent.name }}
   ansible.builtin.set_fact:
-    hermes_cron_names: >-
-      {{ ((hermes_jobs_raw.content | b64decode | from_json).jobs | map(attribute='name') | list)
-         if (hermes_jobs_raw.content is defined) else [] }}
+    hermes_cron_names: "{{ hermes_cron_jobs | map(attribute='name') | list }}"
   when: agent.crons | default([]) | length > 0
   tags: [hermes]
 
@@ -101,10 +107,77 @@
     --name {{ item.name | quote }}
     --deliver {{ item.deliver | default('local') | quote }}
     {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
+    {% if item.workdir is defined %}--workdir {{ item.workdir | quote }}{% endif %}
   loop: "{{ agent.crons | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
   when: item.name not in (hermes_cron_names | default([]))
+  changed_when: true
+  tags: [hermes]
+
+- name: Update changed scheduled jobs for {{ agent.name }}
+  ansible.builtin.command: >-
+    {{ hermes_bin }} cron edit {{ hermes_existing_cron.id | quote }}
+    --schedule {{ item.schedule | quote }}
+    --prompt {{ item.prompt | quote }}
+    --name {{ item.name | quote }}
+    --deliver {{ item.deliver | default('local') | quote }}
+    {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
+    {% if item.skills | default([]) | length == 0 %}--clear-skills {% endif %}
+    --workdir {{ item.workdir | default('') | quote }}
+  loop: "{{ agent.crons | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    hermes_existing_cron: >-
+      {{ hermes_cron_jobs | selectattr('name', 'equalto', item.name) | first }}
+  when:
+    - item.name in (hermes_cron_names | default([]))
+    - >-
+      (hermes_existing_cron.schedule_display != item.schedule)
+      or (hermes_existing_cron.prompt != item.prompt)
+      or (hermes_existing_cron.deliver != (item.deliver | default('local')))
+      or ((hermes_existing_cron.skills | default([])) != (item.skills | default([])))
+      or ((hermes_existing_cron.workdir | default('')) != (item.workdir | default('')))
+  changed_when: true
+  tags: [hermes]
+
+# Hermes v0.19's cron CLI does not expose enabled_toolsets, so reconcile that
+# documented job field through the same locked update_job API used by the CLI.
+- name: Refresh scheduled jobs after reconciliation for {{ agent.name }}
+  ansible.builtin.slurp:
+    src: "{{ hermes_profile_path }}/cron/jobs.json"
+  register: hermes_jobs_reconciled_raw
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Compute reconciled cron jobs for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_cron_jobs_reconciled: >-
+      {{ (hermes_jobs_reconciled_raw.content | b64decode | from_json).jobs }}
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Restrict scheduled job toolsets for {{ agent.name }}
+  ansible.builtin.command:
+    argv:
+      - "{{ hermes_python }}"
+      - -c
+      - >-
+        import json, sys; from cron.jobs import update_job;
+        update_job(sys.argv[1], {'enabled_toolsets': json.loads(sys.argv[2])})
+      - "{{ hermes_reconciled_cron.id }}"
+      - "{{ item.enabled_toolsets | default([]) | to_json }}"
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
+  loop: "{{ agent.crons | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    hermes_reconciled_cron: >-
+      {{ hermes_cron_jobs_reconciled | selectattr('name', 'equalto', item.name) | first }}
+  when:
+    - (hermes_reconciled_cron.enabled_toolsets | default([])) != (item.enabled_toolsets | default([]))
   changed_when: true
   tags: [hermes]
 
