@@ -57,13 +57,11 @@
   register: hermes_profile_show
   check_mode: false
   changed_when: false
-  when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
   tags: [hermes]
 
 - name: Record the profile path for {{ agent.name }}
   ansible.builtin.set_fact:
     hermes_profile_path: "{{ hermes_profile_show.stdout | regex_search('Path:\\s*(\\S+)', '\\1') | first }}"
-  when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
   tags: [hermes]
 
 - name: Write the managed persona (SOUL.md) for {{ agent.name }}
@@ -76,12 +74,18 @@
 
 # --- Scheduled jobs ---
 # Reconcile by name; jobs run only while the gateway is active.
+- name: Ensure the cron directory exists for {{ agent.name }}
+  ansible.builtin.file:
+    path: "{{ hermes_profile_path }}/cron"
+    state: directory
+    mode: "0755"
+  tags: [hermes]
+
 - name: Read existing scheduled jobs for {{ agent.name }}
   ansible.builtin.slurp:
     src: "{{ hermes_profile_path }}/cron/jobs.json"
   register: hermes_jobs_raw
   failed_when: false
-  when: agent.crons | default([]) | length > 0
   tags: [hermes]
 
 - name: Compute existing cron jobs for {{ agent.name }}
@@ -89,13 +93,42 @@
     hermes_cron_jobs: >-
       {{ (hermes_jobs_raw.content | b64decode | from_json).jobs
          if (hermes_jobs_raw.content is defined) else [] }}
-  when: agent.crons | default([]) | length > 0
   tags: [hermes]
 
 - name: Compute existing cron names for {{ agent.name }}
   ansible.builtin.set_fact:
     hermes_cron_names: "{{ hermes_cron_jobs | map(attribute='name') | list }}"
-  when: agent.crons | default([]) | length > 0
+    hermes_declared_cron_names: >-
+      {{ agent.crons | default([]) | map(attribute='name') | list }}
+  tags: [hermes]
+
+- name: Read managed cron names for {{ agent.name }}
+  ansible.builtin.slurp:
+    src: "{{ hermes_profile_path }}/cron/ansible-managed.json"
+  register: hermes_managed_crons_raw
+  failed_when: false
+  tags: [hermes]
+
+- name: Compute previously managed cron names for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_previous_managed_cron_names: >-
+      {{ (hermes_managed_crons_raw.content | b64decode | from_json).names
+         if (hermes_managed_crons_raw.content is defined) else [] }}
+  tags: [hermes]
+
+- name: Remove stale managed jobs for {{ agent.name }}
+  ansible.builtin.command: >-
+    {{ hermes_bin }} cron remove {{ hermes_stale_cron.id | quote }}
+  loop: >-
+    {{ hermes_previous_managed_cron_names
+       | difference(hermes_declared_cron_names)
+       | intersect(hermes_cron_names) }}
+  loop_control:
+    label: "{{ item }}"
+  vars:
+    hermes_stale_cron: >-
+      {{ hermes_cron_jobs | selectattr('name', 'equalto', item) | first }}
+  changed_when: true
   tags: [hermes]
 
 - name: Parse declared cron schedules for {{ agent.name }}
@@ -195,6 +228,13 @@
   when:
     - (hermes_reconciled_cron.enabled_toolsets | default([])) != (item.enabled_toolsets | default([]))
   changed_when: true
+  tags: [hermes]
+
+- name: Record managed cron names for {{ agent.name }}
+  ansible.builtin.copy:
+    content: "{{ {'names': hermes_declared_cron_names} | to_nice_json }}\n"
+    dest: "{{ hermes_profile_path }}/cron/ansible-managed.json"
+    mode: "0644"
   tags: [hermes]
 
 # --- Scheduler ---

@@ -20,16 +20,60 @@ json_value() {
   python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' \
     "$resolved_vars" "$1"
 }
-configured_crons_present() {
-  python3 - "$resolved_vars" "$1" <<'PY'
+configured_crons_match() {
+  python3 - "$resolved_vars" "$1" "$2" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+expected = json.load(open(sys.argv[1]))["crons"]
+jobs_path = Path(sys.argv[2])
+actual = {
+    job["name"]: job
+    for job in json.load(open(jobs_path)).get("jobs", [])
+} if jobs_path.exists() else {}
+managed = set(json.load(open(sys.argv[3]))["names"])
+assert managed == {job["name"] for job in expected}
+
+def schedule_display(value):
+    match = re.fullmatch(r"every (\d+)([mhd])", value.lower())
+    if not match:
+        return value
+    amount, unit = int(match.group(1)), match.group(2)
+    return f"every {amount * {'m': 1, 'h': 60, 'd': 1440}[unit]}m"
+
+for wanted in expected:
+    found = actual[wanted["name"]]
+    assert found["schedule_display"] == schedule_display(wanted["schedule"])
+    assert found["prompt"] == wanted["prompt"]
+    assert found["deliver"] == wanted.get("deliver", "local")
+    assert found.get("skills", []) == wanted.get("skills", [])
+    assert found.get("enabled_toolsets", []) == wanted.get("enabled_toolsets", [])
+    assert found.get("workdir", "") == wanted.get("workdir", "")
+PY
+}
+obsidian_config_matches() {
+  python3 - "$resolved_vars" <<'PY'
 import json
 import sys
+from pathlib import Path
 
-expected = set(json.load(open(sys.argv[1]))["cron_names"])
-if not expected:
-    raise SystemExit(0)
-actual = {job["name"] for job in json.load(open(sys.argv[2])).get("jobs", [])}
-raise SystemExit(not expected <= actual)
+expected = json.load(open(sys.argv[1]))
+vault = Path(expected["vault"])
+daily = json.load(open(vault / ".obsidian/daily-notes.json"))
+templates = json.load(open(vault / ".obsidian/templates.json"))
+plugins = set(json.load(open(vault / ".obsidian/core-plugins.json")))
+assert daily == {
+    "folder": expected["journal_folder"],
+    "format": "YYYY-MM-DD",
+    "template": f'{expected["templates_folder"]}/Daily Journal',
+}
+assert templates == {"folder": expected["templates_folder"]}
+assert {"daily-notes", "templates"} <= plugins
+assert (vault / expected["templates_folder"] / "Daily Journal.md").read_bytes() == Path(
+    "files/obsidian/Daily Journal.md"
+).read_bytes()
 PY
 }
 
@@ -78,8 +122,8 @@ if [ -n "$profile_dir" ]; then
   if [ "$(json_value persona)" = True ]; then
     check "managed SOUL.md written" "[ -s '$profile_dir/SOUL.md' ]"
   fi
-  check "configured crons registered" \
-    "configured_crons_present '$profile_dir/cron/jobs.json'"
+  check "configured crons match" \
+    "configured_crons_match '$profile_dir/cron/jobs.json' '$profile_dir/cron/ansible-managed.json'"
 else
   bad "could not resolve the $profile profile path"
 fi
@@ -93,11 +137,7 @@ journal_folder="$(json_value journal_folder)"
 templates_folder="$(json_value templates_folder)"
 check "journal folder created"   "[ -d '$vault/$journal_folder' ]"
 check "templates folder created" "[ -d '$vault/$templates_folder' ]"
-check "daily journal template"   "[ -s '$vault/$templates_folder/Daily Journal.md' ]"
-check "daily-notes plugin config" \
-  "grep -q '$journal_folder' '$vault/.obsidian/daily-notes.json'"
-check "journal core plugins enabled" \
-  "grep -q daily-notes '$vault/.obsidian/core-plugins.json' && grep -q templates '$vault/.obsidian/core-plugins.json'"
+check "daily journal configuration" "obsidian_config_matches"
 
 echo "== macOS defaults =="
 check "Finder shows all extensions" \

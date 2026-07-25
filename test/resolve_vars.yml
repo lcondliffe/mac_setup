@@ -14,7 +14,7 @@
         content: >-
           {{ {
             'profile': hermes_default_profile,
-            'cron_names': managed_agent.crons | default([]) | map(attribute='name') | list,
+            'crons': managed_agent.crons | default([]),
             'gateway': managed_agent.gateway | default(false) | bool,
             'persona': managed_agent.persona is defined,
             'vault': obsidian_vault_path,
