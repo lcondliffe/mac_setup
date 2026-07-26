@@ -1,0 +1,35 @@
+# Terminal stack: Ghostty (emulator) + starship (prompt).
+# Configs are rendered from templates/, so edit those, not ~/.config.
+
+- name: Ensure ghostty config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/ghostty"
+    state: directory
+    mode: "0755"
+  tags: [ghostty, terminal]
+
+- name: Render ghostty config
+  ansible.builtin.template:
+    src: ghostty.config.j2
+    dest: "{{ ansible_env.HOME }}/.config/ghostty/config"
+    mode: "0644"
+  tags: [ghostty, terminal]
+
+- name: Render starship config
+  ansible.builtin.template:
+    src: starship.toml.j2
+    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
+    mode: "0644"
+  tags: [starship, terminal, shell]
+
+# Must be last in .zshrc; blockinfile appends, so this stays after the
+# alias/env blocks as long as nothing else is added after it.
+- name: Ensure .zshrc initialises starship
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    create: true
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK: starship prompt"
+    block: |
+      eval "$(starship init zsh)"
+  tags: [starship, terminal, shell]

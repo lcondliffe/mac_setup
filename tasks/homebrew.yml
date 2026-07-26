@@ -23,19 +23,6 @@
     state: present
   tags: [homebrew, packages, formulae]
 
-# Some packages collide with a same-named cask whose API entry is currently
-# broken upstream (`brew info <pkg>` crashes). The homebrew module calls info
-# before install, so we install these explicitly with `--formula` and gate on
-# `creates:` for idempotency.
-- name: Install collision-affected formulae (broken-cask workaround)
-  ansible.builtin.command:
-    cmd: "brew install --formula {{ item.name }}"
-    creates: "{{ item.creates }}"
-  loop:
-    - { name: codex, creates: /opt/homebrew/bin/codex }
-    - { name: httpie, creates: /opt/homebrew/bin/http }
-  tags: [homebrew, packages, formulae]
-
 - name: Upgrade Homebrew formulae (run explicitly)
   community.general.homebrew:
     name: "{{ homebrew_formulae }}"

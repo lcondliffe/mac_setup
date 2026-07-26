@@ -14,7 +14,8 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - A managed block of shell aliases + `cat-all` function in `~/.zshrc`
 - Global `git config` (identity + `git_settings` in vars.yml: osxkeychain credential helper, delta as pager, `pull.rebase`, `push.autoSetupRemote`, `init.defaultBranch=main`)
 - pipx packages
-- `krew` (kubectl plugin manager) install + PATH
+- Terminal: Ghostty config (`~/.config/ghostty/config`) and the starship prompt (`~/.config/starship.toml`), both rendered from [`templates/`](templates)
+- herdr: `~/.config/herdr/config.toml` (rendered from [`templates/`](templates); deliberate overrides only) plus per-agent state-reporting hooks (`herdr_integrations`) so the sidebar and attention queue can tell running agents apart. Each integration installs into that agent's own config directory, which only exists once the agent has been launched — installing the cask is not enough. Integrations for agents that have never run are skipped with a message; launch them once, then re-run `-t herdr`.
 - VSCode extensions
 - Hermes agents: installs the Hermes CLI (rolling, tracks `hermes_git_branch`) and configures one on-device profile per entry in `hermes_agents` (default `mack`, using model `gpt-5.6-sol` via the `openai-codex` OAuth provider). Adding an agent is a single `hermes_agents` list entry. Each agent can declare `crons` (scheduled jobs, reconciled by name into `<profile>/cron/jobs.json`) — e.g. a `daily-standup` at 08:00. An agent with `gateway: true` gets a per-profile launchd **user** service (no sudo) that runs the cron scheduler and starts on login, so its crons actually fire. Upgrades are opt-in via `-t upgrade` (runs `hermes update`: pulls latest, reinstalls deps, re-syncs skills, migrates config). The subscription credential is **not** stored in git — each agent with `auth: true` triggers a **one-time interactive OAuth login** saved to `~/.hermes/auth.json`.
   - The bundled `daily-standup` cron is a **draft**: the scheduler runs it, but it needs the agent's OAuth login completed, plus calendar access (add an MCP calendar server with `hermes mcp add`) and notebook access (the `note-taking` skill is installed), before it produces a useful brief.
@@ -64,7 +65,8 @@ Targeted runs with tags (faster, incremental):
 | `env,shell` | Just the env-vars managed block |
 | `git` | Global git config |
 | `pipx` | pipx packages |
-| `kubectl` | krew install + PATH |
+| `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
+| `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
 | `hermes` | Install Hermes + configure agent profiles/models from `hermes_agents`; interactive OpenAI (Codex) login gate |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
