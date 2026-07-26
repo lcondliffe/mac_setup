@@ -1,0 +1,40 @@
+# Managed by Ansible ({{ ansible_managed | default('mac_setup') }}) — edit templates/ghostty.config.j2
+# Reference: https://ghostty.org/docs/config/reference
+
+# Follows the macOS appearance setting.
+theme = dark:{{ ghostty_theme_dark }},light:{{ ghostty_theme_light }}
+
+font-family = {{ ghostty_font_family }}
+font-size = {{ ghostty_font_size }}
+
+window-padding-x = 8
+window-padding-y = 6
+window-save-state = always
+# New tabs/splits open in the current tab's directory.
+window-inherit-working-directory = true
+
+# Nicer tab bar; tab titles follow the running program / cwd.
+macos-titlebar-style = tabs
+macos-option-as-alt = true
+
+# Big scrollback for long agent runs.
+scrollback-limit = 100000
+copy-on-select = clipboard
+confirm-close-surface = false
+
+# Tabs: cmd+t new, cmd+w close, cmd+1..9 jump, cmd+shift+[ ] cycle (all default).
+# Reordering has no default binding:
+keybind = cmd+shift+left=move_tab:-1
+keybind = cmd+shift+right=move_tab:1
+
+# Splits, for two agents side by side in one tab:
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+opt+left=goto_split:left
+keybind = cmd+opt+right=goto_split:right
+keybind = cmd+opt+up=goto_split:up
+keybind = cmd+opt+down=goto_split:down
+keybind = cmd+shift+enter=toggle_split_zoom
+
+# Quick terminal: hold-down drop-down from the top of the screen.
+keybind = global:cmd+grave_accent=toggle_quick_terminal

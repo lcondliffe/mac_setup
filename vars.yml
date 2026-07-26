@@ -115,15 +115,11 @@ homebrew_formulae:
   - azure/functions/azure-functions-core-tools@4
   - bash
   - bat                                   # https://github.com/sharkdp/bat
-  - cmake
   - curl
   - dockutil                              # https://github.com/kcrawford/dockutil
   - eza                                   # https://github.com/eza-community/eza
   - ffmpeg
-  - flex
-  - fluxcd/tap/flux
   - fzf                                   # https://github.com/junegunn/fzf
-  - gemini-cli
   - gh
   - git
   - git-delta                             # https://github.com/dandavison/delta
@@ -131,45 +127,41 @@ homebrew_formulae:
   - gitleaks
   - go
   - googleworkspace-cli
-  - graphviz
   - hashicorp/tap/terraform
   - helm
-  - hugo
+  - herdr
+  - httpie
   - infisical/get-cli/infisical
   - jq
-  - json-c
-  - kagent
-  - kind
+  - krew                                  # kubectl plugin manager
   - kubernetes-cli
   - kubectx
   - lcondliffe/tap/gitling
-  - libpq
   - ncdu                                  # https://github.com/rofl0r/ncdu
-  - oci-cli
-  - opencode
-  - ossp-uuid
   - pipx
-  - pkgconf
   - podman
   - podman-compose
   - powershell
   - pre-commit
   - python@3.14
   - sshpass
+  - starship                              # https://starship.rs
   - terraform-docs
   - tokei                                 # https://github.com/xampprocky/tokei
   - uv
   - yamllint
-  - yq
   - zsh
 
 # Homebrew casks (GUI apps)
 homebrew_casks:
   - claude
-  - claude-code
+  - claude-code@latest                     # stable cask lags; @latest carries new models
+  - codex
   - drawio
   - emdash
+  - font-jetbrains-mono-nerd-font         # ghostty_font_family (Nerd Font glyphs)
   - gcloud-cli
+  - ghostty
   - google-chrome
   - lens
   - maccy
@@ -182,8 +174,37 @@ homebrew_casks:
   - terraform-linters/tap/tflint
   - twingate
   - visual-studio-code
-  - warp
   - zoom
+
+# Terminal stack (see tasks/terminal.yml). Configs live in templates/;
+# ghostty themes: `ghostty +list-themes`.
+ghostty_theme_dark: "Catppuccin Mocha"
+ghostty_theme_light: "Catppuccin Latte"
+# Needs the font-jetbrains-mono-nerd-font cask below; without it Ghostty silently
+# falls back to its bundled JetBrains Mono (no Nerd Font glyph coverage).
+ghostty_font_family: "JetBrainsMono Nerd Font Mono"
+ghostty_font_size: 15
+
+# herdr (see tasks/herdr.yml); config template in templates/herdr.config.toml.j2.
+# Sidebar ordering: "priority" = attention queue (agents needing input first);
+# "spaces" = grouped by workspace.
+herdr_agent_panel_sort: priority
+
+# Sidebar colours (Catppuccin Mocha, matching ghostty_theme_dark): agent name in
+# blue, the agent's current-task line in near-white so it stays readable.
+herdr_agent_fg: "#89b4fa"
+herdr_agent_title_fg: "#cdd6f4"
+
+# Sidebar width in columns (stock default 26, stock max 36). Wider so agent
+# task lines are readable; prefix+b collapses the sidebar entirely.
+herdr_sidebar_width: 40
+herdr_sidebar_max_width: 52
+
+# Per-agent state-reporting hooks. Full list: `herdr integration list`.
+herdr_integrations:
+  - claude
+  - codex
+  - hermes
 
 # pipx packages to install
 pipx_packages:
@@ -239,7 +260,7 @@ dock_manage_layout: true
 dock_apps:
   - /Applications/Google Chrome.app
   - /Applications/Visual Studio Code.app
-  - /Applications/Warp.app
+  - /Applications/Ghostty.app
   - /Applications/Obsidian.app
   - /Applications/Notion.app
   - /Applications/Claude.app

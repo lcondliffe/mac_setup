@@ -31,6 +31,10 @@
       ansible.builtin.include_tasks: tasks/aliases.yml
       tags: [aliases, shell]
 
+    - name: Terminal (ghostty config + starship prompt)
+      ansible.builtin.include_tasks: tasks/terminal.yml
+      tags: [terminal, ghostty, starship, shell]
+
     - name: Git configuration
       ansible.builtin.include_tasks: tasks/git.yml
       tags: [git]
@@ -39,9 +43,9 @@
       ansible.builtin.include_tasks: tasks/pipx.yml
       tags: [pipx, packages, upgrade]
 
-    - name: Kubectl krew
-      ansible.builtin.include_tasks: tasks/kubectl.yml
-      tags: [kubectl]
+    - name: herdr agent integrations (agent state reporting)
+      ansible.builtin.include_tasks: tasks/herdr.yml
+      tags: [herdr, agents]
 
     - name: Hermes agents (install + configure on-device profiles)
       ansible.builtin.include_tasks: tasks/hermes.yml

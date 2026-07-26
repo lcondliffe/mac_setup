@@ -1,0 +1,50 @@
+# Managed by Ansible ({{ ansible_managed | default('mac_setup') }}) — edit templates/herdr.config.toml.j2
+# Deliberate overrides only. Full annotated defaults: `herdr --default-config`.
+# Apply to a running session with `herdr server reload-config` (or prefix+shift+r).
+
+[ui]
+# Sidebar sorted by attention queue, so agents waiting on input float to the top.
+agent_panel_sort = "{{ herdr_agent_panel_sort }}"
+
+# Wider than the stock 26 columns: the agent's current-task line is the thing
+# worth reading at a glance, and 26 truncates it to a few words. Costs width
+# from the agent pane — prefix+b collapses the sidebar when you need it back.
+sidebar_width = {{ herdr_sidebar_width }}
+sidebar_max_width = {{ herdr_sidebar_max_width }}
+
+# Name the agent in the split-pane border when the pane has no manual name.
+show_agent_labels_on_pane_borders = true
+
+# Agent identity leads; repo and current task sit under it, dimmed. The default
+# inverts this (bold workspace, dim agent), which reads badly once several
+# agents share a repo — but the repo still has to be visible once more than one
+# workspace is open. Row 2 is the agent's own terminal title (Claude reports its
+# current task there).
+# fg is Catppuccin Mocha blue, matching ghostty_theme_dark.
+# Three rows: who, what, where. The task line gets a row to itself so it has the
+# full sidebar width before truncating, and state_text spells out working vs
+# waiting rather than leaving it to the icon's colour alone.
+[ui.sidebar.agents]
+rows = [
+  [
+    "state_icon",
+    { token = "agent", bold = true, dim = false, fg = "{{ herdr_agent_fg }}" },
+    "tab",
+    { token = "state_text", dim = true },
+  ],
+  [{ token = "terminal_title_stripped", dim = false, fg = "{{ herdr_agent_title_fg }}" }],
+  [{ token = "workspace", dim = true }],
+]
+
+# Codex titles its terminal with the directory, not the task, so its task row
+# would just repeat the repo name. Two rows for codex until that changes.
+[ui.sidebar.agents.rows_by_agent]
+codex = [
+  [
+    "state_icon",
+    { token = "agent", bold = true, dim = false, fg = "{{ herdr_agent_fg }}" },
+    "tab",
+    { token = "state_text", dim = true },
+  ],
+  [{ token = "workspace", dim = true }],
+]
