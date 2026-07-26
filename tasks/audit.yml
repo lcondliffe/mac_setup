@@ -37,12 +37,10 @@
 
 - name: Report drift between vars.yml and this machine
   vars:
-    # httpie is installed by the broken-cask workaround, not vars.yml.
-    audit_workaround_formulae: [httpie]
     # vars.yml entries may be tap-qualified (hashicorp/tap/terraform) while
     # brew may report either short or tap-qualified names, so normalize both
     # sides to the final formula token before comparing.
-    want_formulae: "{{ (homebrew_formulae + audit_workaround_formulae) | map('regex_replace', '^.*/', '') | list }}"
+    want_formulae: "{{ homebrew_formulae | map('regex_replace', '^.*/', '') | list }}"
     have_requested_formulae: "{{ audit_brew_leaves.stdout_lines | map('regex_replace', '^.*/', '') | list }}"
     have_formulae: "{{ audit_brew_formulae.stdout_lines | map('regex_replace', '^.*/', '') | list }}"
     want_casks: "{{ homebrew_casks | map('regex_replace', '^.*/', '') | list }}"

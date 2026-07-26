@@ -9,6 +9,7 @@ homebrew_taps:
 homebrew_formulae:
   - dockutil
   - git-delta
+  - herdr
   - jq
   - kubernetes-cli
   - pipx
