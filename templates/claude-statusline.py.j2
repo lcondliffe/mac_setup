@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+# Managed by Ansible ({{ ansible_managed | default('mac_setup') }}) — edit templates/claude-statusline.py.j2
+"""Claude Code status line: rate-limit usage, mirrored into herdr's sidebar.
+
+Claude passes session JSON on stdin, and `rate_limits` (the 5h and 7d windows)
+is the only place that quota is exposed outside the TUI's own /usage view.
+Printing it is half the point; the other half is reporting it to herdr as a
+$usage pane token, which the sidebar renders per agent. Claude re-runs this on
+every refresh, so the token stays current without a poller.
+
+Failures are swallowed: this runs on every status-line refresh, so a traceback
+would land in the status bar on every prompt.
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+# Long enough that an idle session keeps its (unchanged) figure, short enough
+# that the token clears from the sidebar once Claude exits the pane.
+TOKEN_TTL_MS = 900_000
+
+WINDOWS = (("five_hour", "5h"), ("seven_day", "7d"))
+
+
+def render(limits):
+    parts = []
+    for key, label in WINDOWS:
+        window = limits.get(key) or {}
+        used = window.get("used_percentage")
+        if used is not None:
+            parts.append(f"{label} {round(used)}%")
+    return " · ".join(parts)
+
+
+def report_to_herdr(usage):
+    pane = os.environ.get("HERDR_PANE_ID")
+    if not usage or not pane or not os.environ.get("HERDR_SOCKET_PATH"):
+        return
+    subprocess.run(
+        [
+            "herdr", "pane", "report-metadata", pane,
+            "--source", "claude-usage",
+            "--token", f"usage={usage}",
+            "--ttl-ms", str(TOKEN_TTL_MS),
+        ],
+        capture_output=True,
+        timeout=3,
+        check=False,
+    )
+
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except Exception:
+        return
+    usage = render(data.get("rate_limits") or {})
+    try:
+        report_to_herdr(usage)
+    except Exception:
+        pass
+    if usage:
+        print(usage)
+
+
+main()

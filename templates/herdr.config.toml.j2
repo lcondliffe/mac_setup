@@ -36,9 +36,24 @@ rows = [
   [{ token = "workspace", dim = true }],
 ]
 
+# Claude gets a fourth token on the workspace row: $usage, the 5h/7d rate-limit
+# figures reported by the status line (templates/claude-statusline.py.j2). No
+# other agent reports it, so it stays claude-only rather than going in the
+# shared rows above.
+[ui.sidebar.agents.rows_by_agent]
+claude = [
+  [
+    "state_icon",
+    { token = "agent", bold = true, dim = false, fg = "{{ herdr_agent_fg }}" },
+    "tab",
+    { token = "state_text", dim = true },
+  ],
+  [{ token = "terminal_title_stripped", dim = false, fg = "{{ herdr_agent_title_fg }}" }],
+  [{ token = "workspace", dim = true }, { token = "$usage", dim = true }],
+]
+
 # Codex titles its terminal with the directory, not the task, so its task row
 # would just repeat the repo name. Two rows for codex until that changes.
-[ui.sidebar.agents.rows_by_agent]
 codex = [
   [
     "state_icon",
