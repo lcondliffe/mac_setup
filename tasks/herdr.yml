@@ -1,8 +1,20 @@
-# herdr agent integrations: per-agent hooks that report lifecycle state
-# (working / waiting / idle) back to herdr, so its sidebar and attention queue
-# can tell running agents apart. Each installs into that agent's own config dir
-# (~/.claude/hooks, ~/.codex, ~/.hermes/plugins). Reverse with
-# `herdr integration uninstall <name>`.
+# herdr config plus agent integrations: per-agent hooks that report lifecycle
+# state (working / waiting / idle) back to herdr, so its sidebar and attention
+# queue can tell running agents apart.
+#
+# Each integration installs into that agent's own config directory, which the
+# agent itself creates — a Homebrew cask puts Claude/Codex on disk but the
+# config directory only appears once the agent has been launched. `herdr
+# integration install` exits 1 if it is missing, so each one is gated on its
+# `requires` path and skipped until then. Re-run `-t herdr` after first
+# launching an agent. Reverse with `herdr integration uninstall <name>`.
+
+- name: Ensure herdr config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/herdr"
+    state: directory
+    mode: "0755"
+  tags: [herdr, agents]
 
 - name: Render herdr config
   ansible.builtin.template:
@@ -25,6 +37,16 @@
   failed_when: false
   tags: [herdr, agents]
 
+- name: Check which agent config directories exist
+  ansible.builtin.stat:
+    path: "{{ item.requires }}"
+  loop: "{{ herdr_integrations }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: herdr_agent_dirs
+  changed_when: false
+  tags: [herdr, agents]
+
 - name: Read herdr integration status
   ansible.builtin.command: herdr integration status
   register: herdr_integration_status
@@ -35,8 +57,24 @@
 # Status lines read "<name>: current (vN) (<path>)" once installed; anything
 # else (not installed / outdated) means it needs the install command.
 - name: Install herdr agent integrations
-  ansible.builtin.command: "herdr integration install {{ item }}"
-  loop: "{{ herdr_integrations }}"
-  when: "herdr_integration_status.stdout is not search('^' ~ item ~ ': current', multiline=True)"
+  ansible.builtin.command: "herdr integration install {{ item.item.name }}"
+  loop: "{{ herdr_agent_dirs.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    # Quoted: the colon in ': current' would otherwise parse as a YAML mapping.
+    - "item.stat.exists"
+    - "herdr_integration_status.stdout is not search('^' ~ item.item.name ~ ': current', multiline=True)"
   changed_when: true
+  tags: [herdr, agents]
+
+- name: Report agents skipped because they have not been launched yet
+  ansible.builtin.debug:
+    msg: >-
+      herdr integrations skipped (no config directory yet):
+      {{ herdr_skipped | join(', ') }}.
+      Launch each agent once, then re-run with -t herdr.
+  vars:
+    herdr_skipped: "{{ herdr_agent_dirs.results | rejectattr('stat.exists') | map(attribute='item.name') | list }}"
+  when: herdr_skipped | length > 0
   tags: [herdr, agents]

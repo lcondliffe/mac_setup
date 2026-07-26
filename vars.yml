@@ -201,10 +201,16 @@ herdr_sidebar_width: 40
 herdr_sidebar_max_width: 52
 
 # Per-agent state-reporting hooks. Full list: `herdr integration list`.
+# `requires` is the agent's own config directory: the agent creates it on first
+# launch, and `herdr integration install` fails without it, so tasks/herdr.yml
+# skips an integration until its directory exists.
 herdr_integrations:
-  - claude
-  - codex
-  - hermes
+  - name: claude
+    requires: "{{ ansible_env.HOME }}/.claude"
+  - name: codex
+    requires: "{{ ansible_env.HOME }}/.codex"
+  - name: hermes
+    requires: "{{ ansible_env.HOME }}/.hermes"
 
 # pipx packages to install
 pipx_packages:
