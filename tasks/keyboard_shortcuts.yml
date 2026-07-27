@@ -33,9 +33,22 @@
     label: "{{ item.name }}"
   tags: [keyboard, shortcuts]
 
+# Frees the fn/globe key for a dictation app to bind. macOS claims the key
+# first, so leaving this at the stock "Show Emoji & Symbols" means the app's
+# hotkey silently never fires.
+- name: Set what the fn/globe key does on its own
+  community.general.osx_defaults:
+    domain: com.apple.HIToolbox
+    key: AppleFnUsageType
+    type: int
+    value: "{{ fn_key_usage }}"
+    state: present
+  register: fn_key_result
+  tags: [keyboard, shortcuts]
+
 - name: Reactivate symbolic hotkeys (apply without logout)
   ansible.builtin.command: >-
     /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
-  when: symbolichotkeys_result.changed
+  when: symbolichotkeys_result.changed or fn_key_result.changed
   changed_when: false
   tags: [keyboard, shortcuts]

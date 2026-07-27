@@ -22,6 +22,16 @@ scrollback-limit = 100000
 copy-on-select = clipboard
 confirm-close-surface = false
 
+# Dictation (Wispr Flow) inserts transcripts as a paste. These are the stock
+# values, pinned because dictation depends on them: paste protection still
+# guards the bare shell, but bracketed paste — which herdr and the agent TUIs
+# enable — is trusted, so a multi-sentence transcript lands without a
+# confirmation dialog. Secure input stays on, so dictation is blocked at
+# password prompts by design.
+clipboard-paste-protection = true
+clipboard-paste-bracketed-safe = true
+macos-auto-secure-input = true
+
 # Tabs: cmd+t new, cmd+w close, cmd+1..9 jump, cmd+shift+[ ] cycle (all default).
 # Reordering has no default binding:
 keybind = cmd+shift+left=move_tab:-1

@@ -1,0 +1,128 @@
+# Dictation apps: hold-to-talk voice input that inserts text into whatever has
+# keyboard focus. With Ghostty focused that means the coding agent in the
+# focused herdr pane — no herdr- or agent-side setup is involved, the transcript
+# lands in the pane's stdin like any other paste.
+#
+# Kept as a loop over dictation_apps even though superwhisper is the only entry:
+# it is what made trialling it against Wispr Flow a one-line change, and the
+# next comparison will want the same.
+#
+# Two things Ansible deliberately does not manage:
+#   * TCC permissions (Microphone, Accessibility). macOS only accepts these from
+#     a user click or a pre-granted MDM profile, and this machine is not
+#     enrolled. Nothing scriptable exists that does not involve disabling SIP.
+#   * App preferences: the hotkey, and the modes that do the LLM reformatting.
+#     superwhisper's modes are plain JSON under ~/superwhisper, so they *could*
+#     be templated — see the note on the dictation_apps entry.
+# So this file installs (via the cask in homebrew_casks) and then reports what
+# is still outstanding rather than pretending to converge it.
+
+- name: Check dictation apps are installed
+  ansible.builtin.stat:
+    path: "{{ item.app_path }}"
+  loop: "{{ dictation_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: dictation_app_stat
+  when: dictation_enabled | bool
+  tags: [dictation]
+
+- name: Fail if a dictation cask did not install
+  ansible.builtin.fail:
+    msg: >-
+      {{ item.item.app_path }} is missing. It comes from the {{ item.item.cask }}
+      cask — run with -t homebrew first, or drop the entry from dictation_apps.
+  loop: "{{ dictation_app_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  tags: [dictation]
+
+- name: Check whether each dictation app has been launched
+  ansible.builtin.stat:
+    path: "{{ item.support_dir }}"
+  loop: "{{ dictation_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: dictation_support
+  when: dictation_enabled | bool
+  tags: [dictation]
+
+# Best effort: the TCC databases are readable only by a process holding Full
+# Disk Access, which the terminal running Ansible usually does not have. A
+# failure here means "cannot tell", never "not granted". One query per database
+# covering every app, filtered per app in the report below.
+- name: Read dictation TCC grants (needs Full Disk Access; ignored if denied)
+  ansible.builtin.command: >-
+    sqlite3 -separator '|' "{{ item }}"
+    "select client, service, auth_value from access where client in ({{ dictation_clients }})"
+  loop:
+    - "/Library/Application Support/com.apple.TCC/TCC.db"
+    - "{{ ansible_env.HOME }}/Library/Application Support/com.apple.TCC/TCC.db"
+  vars:
+    dictation_clients: >-
+      {{ dictation_apps | map(attribute='bundle_id')
+         | map('regex_replace', '^(.*)$', "'\1'") | join(', ') }}
+  register: dictation_tcc
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: dictation_enabled | bool
+  tags: [dictation]
+
+- name: Open the System Settings panes that need a manual grant
+  ansible.builtin.command: "open '{{ item }}'"
+  loop:
+    - x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone
+    - x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility
+  changed_when: false
+  when:
+    - dictation_enabled | bool
+    - dictation_open_settings | bool
+    # The panes are shared, so one visit covers every app still outstanding.
+    - dictation_support.results | rejectattr('stat.exists') | list | length > 0
+  tags: [dictation]
+
+- name: Report dictation setup state
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        [item.item.name ~ ":"]
+        + (
+          [
+            "  Installed but never launched. Open it once to sign in, then grant:",
+            "    Microphone    — System Settings > Privacy & Security > Microphone",
+            "    Accessibility — System Settings > Privacy & Security > Accessibility (this is what lets it type into Ghostty)",
+          ]
+          if not item.stat.exists else
+          [
+            "  Launched (" ~ item.item.support_dir ~ ").",
+            "  Permission grants" ~ (
+              ": " ~ (dictation_grants | join('; '))
+              if dictation_grants | length > 0
+              else " could not be read (TCC needs Full Disk Access) — verify in System Settings > Privacy & Security."
+            ),
+          ]
+        )
+        + (item.item.notes | default([]) | map('regex_replace', '^', '  - ') | list)
+      }}
+  vars:
+    # Raw "<bundle_id>|kTCCService<name>|<auth_value>" rows; auth_value 2 = allowed.
+    dictation_grants: >-
+      {{ dictation_tcc.results | default([]) | map(attribute='stdout') | select('truthy')
+         | map('split', '\n') | flatten
+         | select('match', item.item.bundle_id | regex_escape ~ '\|') | list }}
+  loop: "{{ dictation_support.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: dictation_enabled | bool
+  tags: [dictation]
+
+- name: Report how to reach the agents
+  ansible.builtin.debug:
+    msg:
+      - "To dictate to an agent: focus the herdr pane, hold the hotkey (fn), speak."
+      - "fn is free at the macOS level via fn_key_usage; bind it inside superwhisper."
+      - "Ghostty enables secure input at password prompts, so dictation is blocked there by design."
+  when: dictation_enabled | bool
+  tags: [dictation]

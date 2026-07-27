@@ -16,6 +16,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - pipx packages
 - Terminal: Ghostty config (`~/.config/ghostty/config`) and the starship prompt (`~/.config/starship.toml`), both rendered from [`templates/`](templates)
 - herdr: `~/.config/herdr/config.toml` (rendered from [`templates/`](templates); deliberate overrides only) plus per-agent state-reporting hooks (`herdr_integrations`) so the sidebar and attention queue can tell running agents apart. Each integration installs into that agent's own config directory, which only exists once the agent has been launched — installing the cask is not enough. Integrations for agents that have never run are skipped with a message; launch them once, then re-run `-t herdr`. Also installs a Claude Code status line (`~/.claude/statusline.py`, rendered from [`templates/`](templates)) that prints Claude's 5h/7d rate-limit usage and reports it to herdr as a `$usage` pane token, shown on the sidebar's claude rows. Claude's status-line payload is the only place those figures are exposed, so there is no equivalent for codex — its rate limits are only in its session logs. The `statusLine` key is merged into `~/.claude/settings.json`; the rest of that file (hooks, model, plugins) is left alone.
+- Dictation: installs the apps in `dictation_apps` (**superwhisper**) and checks the setup that has to be done by hand. It is hold-to-talk dictation that types into whatever has keyboard focus, so it reaches the coding agents by way of Ghostty — focus a herdr pane, hold `fn`, speak, and the transcript arrives in that agent's prompt as a paste. Nothing herdr-side is needed, and the hotkey doesn't collide with herdr's `ctrl+b` prefix. See [Dictating to agents](#dictating-to-agents).
 - VSCode extensions
 - Obsidian daily journalling: configures Daily Notes to create `Journal/YYYY-MM-DD.md` from a concise, emoji-headed template
 - Hermes agents: installs the Hermes CLI (rolling, tracks `hermes_git_branch`) and configures one on-device profile per entry in `hermes_agents` (default `mack`, using model `gpt-5.6-sol` via the `openai-codex` OAuth provider). Adding an agent is a single `hermes_agents` list entry. Each agent can declare `crons` (scheduled jobs, reconciled by name into `<profile>/cron/jobs.json`) — e.g. a `daily-standup` at 08:00. An agent with `gateway: true` gets a per-profile launchd **user** service (no sudo) that runs the cron scheduler and starts on login, so its crons actually fire. Upgrades are opt-in via `-t upgrade` (runs `hermes update`: pulls latest, reinstalls deps, re-syncs skills, migrates config). The subscription credential is **not** stored in git — each agent with `auth: true` triggers a **one-time interactive OAuth login** saved to `~/.hermes/auth.json`.
@@ -71,8 +72,9 @@ Targeted runs with tags (faster, incremental):
 | `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
 | `hermes` | Install Hermes + configure agent profiles/models from `hermes_agents`; interactive OpenAI (Codex) login gate |
 | `obsidian` | Daily journal folders, template, and Daily Notes/Templates settings |
+| `dictation` | Dictation app install checks + permission/setup report (`dictation_apps`) |
 | `vscode` | VSCode extensions |
-| `keyboard,shortcuts` | macOS screenshot hotkeys |
+| `keyboard,shortcuts` | macOS screenshot hotkeys + what the fn/globe key does (`fn_key_usage`) |
 | `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
@@ -112,6 +114,21 @@ stubbed out, and disk-space expectations.
 ## SSH key gate
 
 An SSH key is treated as a prerequisite: every run starts with a check for a private key in `~/.ssh` (`id_ed25519` / `id_ecdsa` / `id_rsa`). If none exists you're prompted to either type `generate` (creates a passphrase-less ed25519 key and prints the public key to add to GitHub) or press Enter to abort and import an existing key first. Non-interactive runs abort with the same instructions; pass `-e ssh_gate_action=generate` to generate unattended. Bypass the gate entirely with `-e ssh_gate_enabled=false`.
+
+## Dictating to agents
+
+[superwhisper](https://superwhisper.com) is the voice input for the agents running in herdr. It inserts into whatever has keyboard focus, so with a herdr pane focused the transcript lands in that agent's prompt as a paste. Ghostty turns on macOS secure input at password prompts, so dictation is deliberately dead there.
+
+Installing the cask is not enough — two things are outside Ansible's reach and have to be done once per machine:
+
+1. **Permissions.** Launch the app, sign in, then grant **Microphone** and **Accessibility** in System Settings → Privacy & Security. Accessibility is the one that lets it insert text into Ghostty. macOS only accepts these from a user click (or an MDM-pushed profile, which this machine isn't enrolled for), so there is nothing to automate.
+2. **The hotkey and the modes.** Set them in the app. Modes are superwhisper's unit of configuration — a transcription model plus optional LLM reformatting under instructions you write, with context from the active app, selection, or clipboard. A mode aimed at coding agents ("treat this as an instruction to a coding assistant; preserve identifiers, paths and flags verbatim; strip filler; stay imperative") is what makes dictated prompts usable, and it can auto-activate when Ghostty is frontmost. Modes are plain JSON under `~/superwhisper` with copyable deep links, so once one is worth keeping it can be lifted into `vars.yml` and templated — not done yet.
+
+**Using fn as the hotkey** needs macOS to stop claiming it first — by default the key opens the emoji picker, and an app bound to it just silently never fires. `fn_key_usage: 0` (applied by the `keyboard` tag) sets *System Settings → Keyboard → "Press 🌐 key to"* to **Do Nothing**.
+
+`ansible-playbook mac-setup.yml -t dictation` verifies the install and prints whatever is still outstanding; add `-e dictation_open_settings=true` to have the two Settings panes opened for you. It tries to read the TCC databases to confirm the grants, which only works if the terminal has Full Disk Access — otherwise it says so rather than guessing.
+
+**Why superwhisper over Wispr Flow** (trialled side by side, July 2026): half the subscription ($8.49/mo vs $15/mo, plus a lifetime option Wispr has no equivalent for), on-device transcription so nothing about a private repo leaves the machine, and modes that can be managed from this repo — Wispr Flow's preferences are an electron-store blob that [their own MDM guide](https://docs.wisprflow.ai/articles/9363440133-deploy-wispr-flow-via-mdm) confirms cannot be injected. `dictation_apps` stays a list so the next comparison is a one-line change.
 
 ## Notes
 

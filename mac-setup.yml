@@ -59,6 +59,11 @@
       ansible.builtin.include_tasks: tasks/herdr.yml
       tags: [herdr, agents]
 
+    # After herdr.yml: the guidance it prints is about dictating into herdr.
+    - name: Dictation apps (voice input to agents; reports manual setup steps)
+      ansible.builtin.include_tasks: tasks/dictation.yml
+      tags: [dictation]
+
     - name: VSCode extensions
       ansible.builtin.include_tasks: tasks/vscode_extensions.yml
       tags: [vscode]

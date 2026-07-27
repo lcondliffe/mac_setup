@@ -199,6 +199,7 @@ homebrew_casks:
   - postman
   - powershell
   - scroll-reverser
+  - superwhisper                          # dictation; see tasks/dictation.yml
   - terraform-linters/tap/tflint
   - twingate
   - visual-studio-code
@@ -253,6 +254,40 @@ claude_statusline_setting:
   command: "{{ claude_statusline_path }}"
   refreshInterval: 60
 
+# Dictation (see tasks/dictation.yml): hold-to-talk voice input that types into
+# whatever has keyboard focus, which is how it reaches the coding agents running
+# inside herdr — Ghostty is the focused app, herdr just receives the paste.
+#
+# superwhisper won a side-by-side trial against Wispr Flow (July 2026): half the
+# subscription price, on-device transcription so nothing about a private repo
+# leaves the machine, and modes that are plain JSON — Wispr Flow's preferences
+# are an opaque blob that cannot be managed from here at all.
+dictation_enabled: true
+
+# Open the two System Settings panes that need a manual click (Microphone,
+# Accessibility) for any app that has not been set up yet. Off by default so an
+# unattended run does not throw windows at you: -e dictation_open_settings=true
+dictation_open_settings: false
+
+# support_dir is created on first launch, so it doubles as "has been through
+# onboarding" — same pattern as herdr_integrations.requires.
+dictation_apps:
+  - name: superwhisper
+    cask: superwhisper
+    app_path: "/Applications/superwhisper.app"
+    bundle_id: com.superduper.superwhisper
+    support_dir: "{{ ansible_env.HOME }}/Library/Application Support/superwhisper"
+    notes:
+      - "Runs Whisper on-device, so transcripts stay local and there is no word cap on the free tier."
+      - >-
+        Bind it to fn — free at the macOS level by fn_key_usage, see
+        tasks/keyboard_shortcuts.yml.
+      - >-
+        Modes are JSON files under ~/superwhisper, each with a deep link (cmd+c on the
+        modes menu), so a 'prompt to a coding agent' mode could be managed from here.
+        Not done yet — write the mode in the app first, then lift it into vars.
+      - "Keep the modes folder out of iCloud Documents; the app loses track of it when Documents syncing moves it."
+
 # pipx packages to install
 pipx_packages:
   - jmespath
@@ -270,6 +305,13 @@ vscode_extensions:
   - ms-vscode.powershell                  # PowerShell
   - ms-vscode.remote-explorer
   - pkief.material-icon-theme
+
+# What the fn / globe key does on its own (System Settings > Keyboard >
+# "Press 🌐 key to"). 0 = Do Nothing, 1 = Change Input Source,
+# 2 = Show Emoji & Symbols, 3 = Start Dictation.
+# Set to 0 so fn is free for a dictation app to claim as its hotkey — macOS
+# wins the key otherwise, and the app just never fires. See tasks/dictation.yml.
+fn_key_usage: 0
 
 # macOS screenshot keyboard shortcuts (com.apple.symbolichotkeys)
 # Swaps the defaults so the simple combos copy to the clipboard, and the
