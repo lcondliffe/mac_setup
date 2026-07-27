@@ -74,6 +74,13 @@
 
 # --- Scheduled jobs ---
 # Reconcile by name; jobs run only while the gateway is active.
+#
+# Every hermes CLI call below sets HERMES_HOME explicitly. The cron store is
+# resolved from HERMES_HOME alone (hermes_constants.get_hermes_home), and
+# `profile use` only writes the sticky active_profile marker -- it does not
+# redirect the CLI. Without it, `cron create` writes to the default profile's
+# ~/.hermes/cron/jobs.json instead of this profile's, and the gateway installs
+# a launchd service for the wrong home.
 - name: Ensure the cron directory exists for {{ agent.name }}
   ansible.builtin.file:
     path: "{{ hermes_profile_path }}/cron"
@@ -128,6 +135,8 @@
   vars:
     hermes_stale_cron: >-
       {{ hermes_cron_jobs | selectattr('name', 'equalto', item) | first }}
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
   changed_when: true
   tags: [hermes]
 
@@ -140,6 +149,8 @@
         import json, sys; from cron.jobs import parse_schedule;
         print(json.dumps(parse_schedule(sys.argv[1]), sort_keys=True))
       - "{{ item.schedule }}"
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
   loop: "{{ agent.crons | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
@@ -155,6 +166,8 @@
     --deliver {{ item.deliver | default('local') | quote }}
     {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
     {% if item.workdir is defined %}--workdir {{ item.workdir | quote }}{% endif %}
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
   loop: "{{ agent.crons | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
@@ -172,6 +185,8 @@
     {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
     {% if item.skills | default([]) | length == 0 %}--clear-skills {% endif %}
     --workdir {{ item.workdir | default('') | quote }}
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
   loop: "{{ agent.crons | default([]) }}"
   loop_control:
     index_var: cron_index
@@ -241,6 +256,8 @@
 # Per-profile launchd user service; status is the idempotency gate.
 - name: Check gateway status for agent {{ agent.name }}
   ansible.builtin.command: "{{ hermes_bin }} gateway status"
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
   register: hermes_gateway_status
   check_mode: false
   changed_when: false
@@ -250,6 +267,8 @@
 
 - name: Install and start the gateway for agent {{ agent.name }}
   ansible.builtin.command: "{{ hermes_bin }} gateway install --start-now --start-on-login"
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
   when:
     - agent.gateway | default(false) | bool
     - "'not running' in (hermes_gateway_status.stdout | default('') | lower)"
