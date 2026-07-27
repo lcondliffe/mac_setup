@@ -159,6 +159,10 @@
   loop_control:
     label: "{{ item.name }}"
   when: item.name not in (hermes_cron_names | default([]))
+  register: hermes_cron_created
+  # `hermes cron create` reports refusals (a missing workdir, say) on stdout
+  # and still exits 0, so rc alone would let a silent no-op through.
+  failed_when: "'Failed to create job' in (hermes_cron_created.stdout | default(''))"
   changed_when: true
   tags: [hermes]
 
@@ -189,6 +193,8 @@
       or (hermes_existing_cron.deliver != (item.deliver | default('local')))
       or ((hermes_existing_cron.skills | default([])) != (item.skills | default([])))
       or ((hermes_existing_cron.workdir | default('')) != (item.workdir | default('')))
+  register: hermes_cron_edited
+  failed_when: "'Failed to' in (hermes_cron_edited.stdout | default(''))"
   changed_when: true
   tags: [hermes]
 
