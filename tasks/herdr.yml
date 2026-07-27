@@ -78,3 +78,47 @@
     herdr_skipped: "{{ herdr_agent_dirs.results | rejectattr('stat.exists') | map(attribute='item.name') | list }}"
   when: herdr_skipped | length > 0
   tags: [herdr, agents]
+
+# Claude's rate-limit figures (5h / 7d windows) are exposed only in the JSON it
+# hands its status-line command, so the status line doubles as the reporter that
+# pushes them to herdr as a $usage pane token — rendered in the sidebar's
+# claude rows. Gated on ~/.claude for the same reason as the integrations above.
+- name: Check for the Claude config directory
+  ansible.builtin.stat:
+    path: "{{ claude_config_dir }}"
+  register: claude_config_dir_stat
+  changed_when: false
+  tags: [herdr, agents]
+
+- name: Render the Claude status line
+  ansible.builtin.template:
+    src: claude-statusline.py.j2
+    dest: "{{ claude_statusline_path }}"
+    mode: "0755"
+  when: claude_config_dir_stat.stat.exists
+  tags: [herdr, agents]
+
+- name: Read Claude settings
+  ansible.builtin.slurp:
+    src: "{{ claude_settings_path }}"
+  register: claude_settings_raw
+  when: claude_config_dir_stat.stat.exists
+  # Absent until Claude first writes it; the merge below then starts from {}.
+  failed_when: false
+  changed_when: false
+  tags: [herdr, agents]
+
+# Claude and its own integrations own the rest of settings.json (hooks, model,
+# plugins), so merge the one key in rather than templating the whole file.
+- name: Point Claude's status line at the script
+  ansible.builtin.copy:
+    content: "{{ claude_settings | combine({'statusLine': claude_statusline_setting}) | to_nice_json }}\n"
+    dest: "{{ claude_settings_path }}"
+    mode: "0644"
+    backup: true
+  vars:
+    claude_settings: >-
+      {{ (claude_settings_raw.content | b64decode | from_json)
+         if claude_settings_raw.content is defined else {} }}
+  when: claude_config_dir_stat.stat.exists
+  tags: [herdr, agents]

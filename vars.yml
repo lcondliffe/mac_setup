@@ -212,6 +212,19 @@ herdr_integrations:
   - name: hermes
     requires: "{{ ansible_env.HOME }}/.hermes"
 
+# Claude status line (see tasks/herdr.yml): prints the 5h/7d rate-limit figures
+# and reports them to herdr as the $usage sidebar token.
+claude_config_dir: "{{ ansible_env.HOME }}/.claude"
+claude_settings_path: "{{ claude_config_dir }}/settings.json"
+claude_statusline_path: "{{ claude_config_dir }}/statusline.py"
+
+# refreshInterval keeps the figures updating while a session sits idle, so the
+# reported token does not expire out of the sidebar mid-session.
+claude_statusline_setting:
+  type: command
+  command: "{{ claude_statusline_path }}"
+  refreshInterval: 60
+
 # pipx packages to install
 pipx_packages:
   - jmespath
