@@ -7,3 +7,7 @@
 # Local-only overrides (e.g. ansible-playbook -e @my-vars.yml)
 my-vars.yml
 *.local.yml
+
+# VM test artifacts
+test/logs/
+__pycache__/

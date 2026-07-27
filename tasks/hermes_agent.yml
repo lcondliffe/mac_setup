@@ -1,6 +1,4 @@
-# Configure one Hermes agent (loop var `agent`): profile, model, optional persona,
-# crons, gateway, and a one-time OAuth login gate (mirrors tasks/ssh.yml). No
-# secret hits the repo — the OAuth token lands in ~/.hermes/auth.json.
+# Configure one `agent`; OAuth credentials remain under ~/.hermes.
 
 - name: List existing hermes profiles
   ansible.builtin.command: "{{ hermes_bin }} profile list"
@@ -59,13 +57,11 @@
   register: hermes_profile_show
   check_mode: false
   changed_when: false
-  when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
   tags: [hermes]
 
 - name: Record the profile path for {{ agent.name }}
   ansible.builtin.set_fact:
     hermes_profile_path: "{{ hermes_profile_show.stdout | regex_search('Path:\\s*(\\S+)', '\\1') | first }}"
-  when: (agent.persona is defined) or (agent.crons | default([]) | length > 0)
   tags: [hermes]
 
 - name: Write the managed persona (SOUL.md) for {{ agent.name }}
@@ -76,22 +72,81 @@
   when: agent.persona is defined
   tags: [hermes]
 
-# --- Scheduled jobs (crons) ---
-# Reconciled by name into <profile>/cron/jobs.json; fire only once the gateway
-# runs. Existing jobs left untouched (change via `hermes cron edit|remove`).
+# --- Scheduled jobs ---
+# Reconcile by name; jobs run only while the gateway is active.
+# 0700 because hermes chmods this directory to 0700 itself when it writes the
+# job store; forcing 0755 here made every rerun report changed.
+- name: Ensure the cron directory exists for {{ agent.name }}
+  ansible.builtin.file:
+    path: "{{ hermes_profile_path }}/cron"
+    state: directory
+    mode: "0700"
+  tags: [hermes]
+
 - name: Read existing scheduled jobs for {{ agent.name }}
   ansible.builtin.slurp:
     src: "{{ hermes_profile_path }}/cron/jobs.json"
   register: hermes_jobs_raw
   failed_when: false
-  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Compute existing cron jobs for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_cron_jobs: >-
+      {{ (hermes_jobs_raw.content | b64decode | from_json).jobs
+         if (hermes_jobs_raw.content is defined) else [] }}
   tags: [hermes]
 
 - name: Compute existing cron names for {{ agent.name }}
   ansible.builtin.set_fact:
-    hermes_cron_names: >-
-      {{ ((hermes_jobs_raw.content | b64decode | from_json).jobs | map(attribute='name') | list)
-         if (hermes_jobs_raw.content is defined) else [] }}
+    hermes_cron_names: "{{ hermes_cron_jobs | map(attribute='name') | list }}"
+    hermes_declared_cron_names: >-
+      {{ agent.crons | default([]) | map(attribute='name') | list }}
+  tags: [hermes]
+
+- name: Read managed cron names for {{ agent.name }}
+  ansible.builtin.slurp:
+    src: "{{ hermes_profile_path }}/cron/ansible-managed.json"
+  register: hermes_managed_crons_raw
+  failed_when: false
+  tags: [hermes]
+
+- name: Compute previously managed cron names for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_previous_managed_cron_names: >-
+      {{ (hermes_managed_crons_raw.content | b64decode | from_json).names
+         if (hermes_managed_crons_raw.content is defined) else [] }}
+  tags: [hermes]
+
+- name: Remove stale managed jobs for {{ agent.name }}
+  ansible.builtin.command: >-
+    {{ hermes_bin }} cron remove {{ hermes_stale_cron.id | quote }}
+  loop: >-
+    {{ hermes_previous_managed_cron_names
+       | difference(hermes_declared_cron_names)
+       | intersect(hermes_cron_names) }}
+  loop_control:
+    label: "{{ item }}"
+  vars:
+    hermes_stale_cron: >-
+      {{ hermes_cron_jobs | selectattr('name', 'equalto', item) | first }}
+  changed_when: true
+  tags: [hermes]
+
+- name: Parse declared cron schedules for {{ agent.name }}
+  ansible.builtin.command:
+    argv:
+      - "{{ hermes_python }}"
+      - -c
+      - >-
+        import json, sys; from cron.jobs import parse_schedule;
+        print(json.dumps(parse_schedule(sys.argv[1]), sort_keys=True))
+      - "{{ item.schedule }}"
+  loop: "{{ agent.crons | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: hermes_declared_schedules
+  changed_when: false
   when: agent.crons | default([]) | length > 0
   tags: [hermes]
 
@@ -101,16 +156,97 @@
     --name {{ item.name | quote }}
     --deliver {{ item.deliver | default('local') | quote }}
     {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
+    {% if item.workdir is defined %}--workdir {{ item.workdir | quote }}{% endif %}
   loop: "{{ agent.crons | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
   when: item.name not in (hermes_cron_names | default([]))
+  register: hermes_cron_created
+  # `hermes cron create` reports refusals (a missing workdir, say) on stdout
+  # and still exits 0, so rc alone would let a silent no-op through.
+  failed_when: "'Failed to create job' in (hermes_cron_created.stdout | default(''))"
   changed_when: true
   tags: [hermes]
 
-# --- Scheduler (gateway) ---
-# Per-profile launchd user service (no sudo) that ticks the cron scheduler.
-# `gateway status` reflects the active (this) profile — doubles as the idempotency gate.
+- name: Update changed scheduled jobs for {{ agent.name }}
+  ansible.builtin.command: >-
+    {{ hermes_bin }} cron edit {{ hermes_existing_cron.id | quote }}
+    --schedule {{ item.schedule | quote }}
+    --prompt {{ item.prompt | quote }}
+    --name {{ item.name | quote }}
+    --deliver {{ item.deliver | default('local') | quote }}
+    {% for skill in item.skills | default([]) %}--skill {{ skill | quote }} {% endfor %}
+    {% if item.skills | default([]) | length == 0 %}--clear-skills {% endif %}
+    --workdir {{ item.workdir | default('') | quote }}
+  loop: "{{ agent.crons | default([]) }}"
+  loop_control:
+    index_var: cron_index
+    label: "{{ item.name }}"
+  vars:
+    hermes_existing_cron: >-
+      {{ hermes_cron_jobs | selectattr('name', 'equalto', item.name) | first }}
+    hermes_declared_schedule: >-
+      {{ hermes_declared_schedules.results[cron_index].stdout | from_json }}
+  when:
+    - item.name in (hermes_cron_names | default([]))
+    - >-
+      (hermes_existing_cron.schedule != hermes_declared_schedule)
+      or (hermes_existing_cron.prompt != item.prompt)
+      or (hermes_existing_cron.deliver != (item.deliver | default('local')))
+      or ((hermes_existing_cron.skills | default([])) != (item.skills | default([])))
+      or ((hermes_existing_cron.workdir | default('')) != (item.workdir | default('')))
+  register: hermes_cron_edited
+  failed_when: "'Failed to' in (hermes_cron_edited.stdout | default(''))"
+  changed_when: true
+  tags: [hermes]
+
+# The cron CLI lacks enabled_toolsets; use its locked update API directly.
+- name: Refresh scheduled jobs after reconciliation for {{ agent.name }}
+  ansible.builtin.slurp:
+    src: "{{ hermes_profile_path }}/cron/jobs.json"
+  register: hermes_jobs_reconciled_raw
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Compute reconciled cron jobs for {{ agent.name }}
+  ansible.builtin.set_fact:
+    hermes_cron_jobs_reconciled: >-
+      {{ (hermes_jobs_reconciled_raw.content | b64decode | from_json).jobs }}
+  when: agent.crons | default([]) | length > 0
+  tags: [hermes]
+
+- name: Restrict scheduled job toolsets for {{ agent.name }}
+  ansible.builtin.command:
+    argv:
+      - "{{ hermes_python }}"
+      - -c
+      - >-
+        import json, sys; from cron.jobs import update_job;
+        update_job(sys.argv[1], {'enabled_toolsets': json.loads(sys.argv[2])})
+      - "{{ hermes_reconciled_cron.id }}"
+      - "{{ item.enabled_toolsets | default([]) | to_json }}"
+  environment:
+    HERMES_HOME: "{{ hermes_profile_path }}"
+  loop: "{{ agent.crons | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    hermes_reconciled_cron: >-
+      {{ hermes_cron_jobs_reconciled | selectattr('name', 'equalto', item.name) | first }}
+  when:
+    - (hermes_reconciled_cron.enabled_toolsets | default([])) != (item.enabled_toolsets | default([]))
+  changed_when: true
+  tags: [hermes]
+
+- name: Record managed cron names for {{ agent.name }}
+  ansible.builtin.copy:
+    content: "{{ {'names': hermes_declared_cron_names} | to_nice_json }}\n"
+    dest: "{{ hermes_profile_path }}/cron/ansible-managed.json"
+    mode: "0644"
+  tags: [hermes]
+
+# --- Scheduler ---
+# Per-profile launchd user service; status is the idempotency gate.
 - name: Check gateway status for agent {{ agent.name }}
   ansible.builtin.command: "{{ hermes_bin }} gateway status"
   register: hermes_gateway_status

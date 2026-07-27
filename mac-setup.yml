@@ -43,6 +43,12 @@
       ansible.builtin.include_tasks: tasks/pipx.yml
       tags: [pipx, packages, upgrade]
 
+    # Before hermes.yml: the daily-standup cron sets its workdir to the journal
+    # folder, and `hermes cron create` refuses a workdir that does not exist.
+    - name: Obsidian daily journal
+      ansible.builtin.include_tasks: tasks/obsidian.yml
+      tags: [obsidian]
+
     - name: Hermes agents (install + configure on-device profiles)
       ansible.builtin.include_tasks: tasks/hermes.yml
       tags: [hermes, upgrade]

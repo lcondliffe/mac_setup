@@ -17,8 +17,9 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - Terminal: Ghostty config (`~/.config/ghostty/config`) and the starship prompt (`~/.config/starship.toml`), both rendered from [`templates/`](templates)
 - herdr: `~/.config/herdr/config.toml` (rendered from [`templates/`](templates); deliberate overrides only) plus per-agent state-reporting hooks (`herdr_integrations`) so the sidebar and attention queue can tell running agents apart. Each integration installs into that agent's own config directory, which only exists once the agent has been launched — installing the cask is not enough. Integrations for agents that have never run are skipped with a message; launch them once, then re-run `-t herdr`. Also installs a Claude Code status line (`~/.claude/statusline.py`, rendered from [`templates/`](templates)) that prints Claude's 5h/7d rate-limit usage and reports it to herdr as a `$usage` pane token, shown on the sidebar's claude rows. Claude's status-line payload is the only place those figures are exposed, so there is no equivalent for codex — its rate limits are only in its session logs. The `statusLine` key is merged into `~/.claude/settings.json`; the rest of that file (hooks, model, plugins) is left alone.
 - VSCode extensions
+- Obsidian daily journalling: configures Daily Notes to create `Journal/YYYY-MM-DD.md` from a concise, emoji-headed template
 - Hermes agents: installs the Hermes CLI (rolling, tracks `hermes_git_branch`) and configures one on-device profile per entry in `hermes_agents` (default `mack`, using model `gpt-5.6-sol` via the `openai-codex` OAuth provider). Adding an agent is a single `hermes_agents` list entry. Each agent can declare `crons` (scheduled jobs, reconciled by name into `<profile>/cron/jobs.json`) — e.g. a `daily-standup` at 08:00. An agent with `gateway: true` gets a per-profile launchd **user** service (no sudo) that runs the cron scheduler and starts on login, so its crons actually fire. Upgrades are opt-in via `-t upgrade` (runs `hermes update`: pulls latest, reinstalls deps, re-syncs skills, migrates config). The subscription credential is **not** stored in git — each agent with `auth: true` triggers a **one-time interactive OAuth login** saved to `~/.hermes/auth.json`.
-  - The bundled `daily-standup` cron is a **draft**: the scheduler runs it, but it needs the agent's OAuth login completed, plus calendar access (add an MCP calendar server with `hermes mcp add`) and notebook access (the `note-taking` skill is installed), before it produces a useful brief.
+  - The bundled `daily-standup` is scoped to yesterday's single journal file and Hermes session history. It must not search other local directories; calendar lookup remains disabled until an integration is configured.
 
 **Not managed (intentional):** any plaintext secrets you may have in `~/.zshrc` / `~/.zprofile`. The playbook writes its content inside marker blocks (`# BEGIN/END ANSIBLE MANAGED BLOCK: ...`), so anything else in those files is left alone. If you want to keep secrets out of git, move them to `~/.zshrc.secrets` and source it from `~/.zshrc`.
 
@@ -28,6 +29,7 @@ All knobs live in [`vars.yml`](vars.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
 - `hermes_agents`, `hermes_default_profile`, `hermes_auth_enabled`
+- `obsidian_vault_path`, `obsidian_journal_folder`, `obsidian_templates_folder`
 - `shell_aliases`, `env_vars`
 - `directories`
 - `git_user_name`, `git_user_email`, `git_settings`
@@ -68,6 +70,7 @@ Targeted runs with tags (faster, incremental):
 | `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
 | `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
 | `hermes` | Install Hermes + configure agent profiles/models from `hermes_agents`; interactive OpenAI (Codex) login gate |
+| `obsidian` | Daily journal folders, template, and Daily Notes/Templates settings |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys |
 | `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |
@@ -84,6 +87,27 @@ Dry-run / verify idempotency:
 ansible-playbook --syntax-check mac-setup.yml
 ansible-playbook --check mac-setup.yml
 ```
+
+## Testing on a clean machine
+
+[`test/vm_test.sh`](test/README.md) runs the whole thing against a throwaway
+macOS VM ([Tart](https://tart.run)): it clones a base image, boots it headless,
+runs `bootstrap_mac.sh` from nothing, re-runs the playbook to assert
+`changed=0`, and checks the resulting end state against `vars.yml`.
+
+```bash
+test/vm_test.sh --minimal --touchid
+```
+
+`--minimal` swaps in [`test/test-vars.yml`](test/test-vars.yml), which trims the
+package lists to a handful of small formulae plus one tap and one cask — every
+task still runs for real, without a 20GB Homebrew download. Drop it to test the
+full package lists.
+
+Needs `tart` + `sshpass` and a base image (`tart clone
+ghcr.io/cirruslabs/macos-tahoe-base:latest tahoe-base`). See
+[`test/README.md`](test/README.md) for options, the two prompts that get
+stubbed out, and disk-space expectations.
 
 ## SSH key gate
 

@@ -1,0 +1,30 @@
+---
+# Minimal package set for `vm_test.sh --minimal`.
+# Covers tap/formula/cask paths and tools required by downstream tasks.
+# Other values inherit vars.yml because this file is passed as extra vars.
+
+homebrew_taps:
+  - lcondliffe/tap
+
+homebrew_formulae:
+  - dockutil
+  - git-delta
+  - herdr
+  - jq
+  - kubernetes-cli
+  - pipx
+
+homebrew_casks:
+  - scroll-reverser
+
+# Exercise VSCode's unavailable branch without audit drift.
+vscode_extensions: []
+
+pipx_packages:
+  - jmespath
+
+# System apps keep Dock testing independent of optional casks.
+dock_apps:
+  - /Applications/Safari.app
+  - /System/Applications/Notes.app
+  - /System/Applications/Calendar.app
