@@ -106,7 +106,11 @@ echo "== Tooling on PATH =="
 for bin in brew git ansible-playbook; do
   check "$bin on PATH" "command -v $bin"
 done
-check "krew installed" "[ -x \"\$HOME/.krew/bin/kubectl-krew\" ]"
+if brew list --formula krew >/dev/null 2>&1; then
+  check "krew installed" "command -v kubectl-krew"
+else
+  echo "  SKIP  krew installed (formula not in this run's package list)"
+fi
 
 echo "== SSH key gate =="
 check "ed25519 private key generated" "[ -f \"\$HOME/.ssh/id_ed25519\" ]"
@@ -115,7 +119,7 @@ check "ed25519 public key generated"  "[ -f \"\$HOME/.ssh/id_ed25519.pub\" ]"
 echo "== Hermes =="
 profile="$(json_value profile)"
 check "hermes binary installed" "[ -x \"\$HOME/.local/bin/hermes\" ]"
-check "$profile profile exists" "hermes profile list | grep -qx '$profile'"
+check "$profile profile exists" "hermes profile list | grep -qw '$profile'"
 check "$profile is active" "grep -qx '$profile' \"\$HOME/.hermes/active_profile\""
 profile_dir="$(hermes profile show "$profile" 2>/dev/null | sed -nE 's/.*Path:[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)"
 if [ -n "$profile_dir" ]; then

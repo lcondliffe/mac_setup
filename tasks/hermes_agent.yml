@@ -74,11 +74,13 @@
 
 # --- Scheduled jobs ---
 # Reconcile by name; jobs run only while the gateway is active.
+# 0700 because hermes chmods this directory to 0700 itself when it writes the
+# job store; forcing 0755 here made every rerun report changed.
 - name: Ensure the cron directory exists for {{ agent.name }}
   ansible.builtin.file:
     path: "{{ hermes_profile_path }}/cron"
     state: directory
-    mode: "0755"
+    mode: "0700"
   tags: [hermes]
 
 - name: Read existing scheduled jobs for {{ agent.name }}
