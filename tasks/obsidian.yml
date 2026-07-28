@@ -44,15 +44,33 @@
   when: obsidian_core_plugins_file.stat.exists
   tags: [obsidian]
 
+# Obsidian owns this file and has changed its shape: it used to be a list of
+# enabled plugin ids, and is now an object keyed by id. Read whichever is there
+# and write back the same shape — converting it would fight whichever Obsidian
+# version wrote it.
+- name: Compute enabled Obsidian core plugins
+  ansible.builtin.set_fact:
+    obsidian_managed_core_plugins:
+      daily-notes: true
+      templates: true
+    obsidian_core_plugins: >-
+      {{ (obsidian_core_plugins_raw.content | b64decode | from_json)
+         if obsidian_core_plugins_file.stat.exists else {} }}
+  tags: [obsidian]
+
+# Only write when a managed plugin is actually missing: to_nice_json reorders
+# and reindents every key Obsidian wrote, so an unconditional copy would report
+# changed on every run and churn the file.
 - name: Enable Obsidian Daily Notes and Templates
   ansible.builtin.copy:
-    content: >-
-      {{ (
-        (
-          (obsidian_core_plugins_raw.content | b64decode | from_json)
-          if obsidian_core_plugins_file.stat.exists else []
-        ) + ['daily-notes', 'templates']
-      ) | unique | to_nice_json }}
+    content: "{{ obsidian_core_plugins_desired | to_nice_json }}\n"
     dest: "{{ obsidian_vault_path }}/.obsidian/core-plugins.json"
     mode: "0644"
+  vars:
+    obsidian_core_plugins_desired: >-
+      {{ obsidian_core_plugins | combine(obsidian_managed_core_plugins)
+         if obsidian_core_plugins is mapping
+         else obsidian_core_plugins
+              + (obsidian_managed_core_plugins | list | difference(obsidian_core_plugins)) }}
+  when: obsidian_core_plugins_desired != obsidian_core_plugins
   tags: [obsidian]
