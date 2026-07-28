@@ -33,9 +33,7 @@
     label: "{{ item.name }}"
   tags: [keyboard, shortcuts]
 
-# Frees the fn/globe key for a dictation app to bind. macOS claims the key
-# first, so leaving this at the stock "Show Emoji & Symbols" means the app's
-# hotkey silently never fires.
+# macOS claims fn first, so an app bound to it silently never fires.
 - name: Set what the fn/globe key does on its own
   community.general.osx_defaults:
     domain: com.apple.HIToolbox

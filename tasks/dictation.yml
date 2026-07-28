@@ -1,21 +1,9 @@
-# Dictation apps: hold-to-talk voice input that inserts text into whatever has
-# keyboard focus. With Ghostty focused that means the coding agent in the
-# focused herdr pane — no herdr- or agent-side setup is involved, the transcript
-# lands in the pane's stdin like any other paste.
+# Voice input to the agents: the app types into the focused window, so a focused
+# herdr pane gets the transcript as an ordinary paste.
 #
-# Kept as a loop over dictation_apps even though superwhisper is the only entry:
-# it is what made trialling it against Wispr Flow a one-line change, and the
-# next comparison will want the same.
-#
-# Two things Ansible deliberately does not manage:
-#   * TCC permissions (Microphone, Accessibility). macOS only accepts these from
-#     a user click or a pre-granted MDM profile, and this machine is not
-#     enrolled. Nothing scriptable exists that does not involve disabling SIP.
-#   * App preferences: the hotkey, and the modes that do the LLM reformatting.
-#     superwhisper's modes are plain JSON under ~/superwhisper, so they *could*
-#     be templated — see the note on the dictation_apps entry.
-# So this file installs (via the cask in homebrew_casks) and then reports what
-# is still outstanding rather than pretending to converge it.
+# Checks and reports only — TCC grants (Microphone, Accessibility) need a user
+# click, and the hotkey and modes live in the app. A loop, so swapping or
+# trialling another app is one vars entry.
 
 - name: Check dictation apps are installed
   ansible.builtin.stat:
@@ -48,10 +36,8 @@
   when: dictation_enabled | bool
   tags: [dictation]
 
-# Best effort: the TCC databases are readable only by a process holding Full
-# Disk Access, which the terminal running Ansible usually does not have. A
-# failure here means "cannot tell", never "not granted". One query per database
-# covering every app, filtered per app in the report below.
+# Readable only with Full Disk Access, so a failure means "cannot tell", not
+# "not granted".
 - name: Read dictation TCC grants (needs Full Disk Access; ignored if denied)
   ansible.builtin.command: >-
     sqlite3 -separator '|' "{{ item }}"
@@ -79,7 +65,7 @@
   when:
     - dictation_enabled | bool
     - dictation_open_settings | bool
-    # The panes are shared, so one visit covers every app still outstanding.
+    # Shared panes: one visit covers everything outstanding.
     - dictation_support.results | rejectattr('stat.exists') | list | length > 0
   tags: [dictation]
 
@@ -92,7 +78,7 @@
           [
             "  Installed but never launched. Open it once to sign in, then grant:",
             "    Microphone    — System Settings > Privacy & Security > Microphone",
-            "    Accessibility — System Settings > Privacy & Security > Accessibility (this is what lets it type into Ghostty)",
+            "    Accessibility — System Settings > Privacy & Security > Accessibility (lets it type into Ghostty)",
           ]
           if not item.stat.exists else
           [
