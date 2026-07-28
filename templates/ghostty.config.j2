@@ -22,6 +22,13 @@ scrollback-limit = 100000
 copy-on-select = clipboard
 confirm-close-surface = false
 
+# Stock values, pinned because dictation pastes depend on them: bracketed paste
+# (used by herdr and the agent TUIs) is trusted, so a multi-sentence transcript
+# skips the confirmation. Secure input stays on — no dictating passwords.
+clipboard-paste-protection = true
+clipboard-paste-bracketed-safe = true
+macos-auto-secure-input = true
+
 # Tabs: cmd+t new, cmd+w close, cmd+1..9 jump, cmd+shift+[ ] cycle (all default).
 # Reordering has no default binding:
 keybind = cmd+shift+left=move_tab:-1
