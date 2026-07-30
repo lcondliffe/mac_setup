@@ -23,7 +23,11 @@
   loop: "{{ dictation_app_stat.results | default([]) }}"
   loop_control:
     label: "{{ item.item.name }}"
-  when: not item.stat.exists
+  when:
+    # First: with dictation off the stat above is skipped, and its result
+    # entries carry no stat to test. The list form short-circuits.
+    - dictation_enabled | bool
+    - not item.stat.exists
   tags: [dictation]
 
 - name: Check whether each dictation app has been launched
