@@ -146,6 +146,9 @@
   loop_control:
     label: "{{ item.name }}"
   register: hermes_declared_schedules
+  # Read-only, and the edit task below parses its stdout: without this, --check
+  # skips it and that parse gets an empty string.
+  check_mode: false
   changed_when: false
   when: agent.crons | default([]) | length > 0
   tags: [hermes]
