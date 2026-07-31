@@ -20,39 +20,6 @@ json_value() {
   python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' \
     "$resolved_vars" "$1"
 }
-configured_crons_match() {
-  python3 - "$resolved_vars" "$1" "$2" <<'PY'
-import json
-import re
-import sys
-from pathlib import Path
-
-expected = json.load(open(sys.argv[1]))["crons"]
-jobs_path = Path(sys.argv[2])
-actual = {
-    job["name"]: job
-    for job in json.load(open(jobs_path)).get("jobs", [])
-} if jobs_path.exists() else {}
-managed = set(json.load(open(sys.argv[3]))["names"])
-assert managed == {job["name"] for job in expected}
-
-def schedule_display(value):
-    match = re.fullmatch(r"every (\d+)([mhd])", value.lower())
-    if not match:
-        return value
-    amount, unit = int(match.group(1)), match.group(2)
-    return f"every {amount * {'m': 1, 'h': 60, 'd': 1440}[unit]}m"
-
-for wanted in expected:
-    found = actual[wanted["name"]]
-    assert found["schedule_display"] == schedule_display(wanted["schedule"])
-    assert found["prompt"] == wanted["prompt"]
-    assert found["deliver"] == wanted.get("deliver", "local")
-    assert found.get("skills", []) == wanted.get("skills", [])
-    assert found.get("enabled_toolsets", []) == wanted.get("enabled_toolsets", [])
-    assert found.get("workdir", "") == wanted.get("workdir", "")
-PY
-}
 obsidian_config_matches() {
   python3 - "$resolved_vars" <<'PY'
 import json
@@ -116,24 +83,16 @@ echo "== SSH key gate =="
 check "ed25519 private key generated" "[ -f \"\$HOME/.ssh/id_ed25519\" ]"
 check "ed25519 public key generated"  "[ -f \"\$HOME/.ssh/id_ed25519.pub\" ]"
 
-echo "== Hermes =="
-profile="$(json_value profile)"
-check "hermes binary installed" "[ -x \"\$HOME/.local/bin/hermes\" ]"
-check "$profile profile exists" "hermes profile list | grep -qw '$profile'"
-check "$profile is active" "grep -qx '$profile' \"\$HOME/.hermes/active_profile\""
-profile_dir="$(hermes profile show "$profile" 2>/dev/null | sed -nE 's/.*Path:[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)"
-if [ -n "$profile_dir" ]; then
-  if [ "$(json_value persona)" = True ]; then
-    check "managed SOUL.md written" "[ -s '$profile_dir/SOUL.md' ]"
-  fi
-  check "configured crons match" \
-    "configured_crons_match '$profile_dir/cron/jobs.json' '$profile_dir/cron/ansible-managed.json'"
+echo "== Mack =="
+# The agent itself lives in the mack repo and runs in a container; this repo is
+# only responsible for putting the CLI on PATH.
+mack_link="$HOME/.local/bin/mack"
+if [ -e "$mack_link" ] || [ -L "$mack_link" ]; then
+  check "mack symlinked to the mack repo" "[ -L \"$mack_link\" ]"
 else
-  bad "could not resolve the $profile profile path"
+  echo "  SKIP  mack on PATH (mack repo not cloned in this run)"
 fi
-if [ "$(json_value gateway)" = True ]; then
-  check "gateway launchd service loaded" "launchctl list | grep -qi hermes"
-fi
+check "podman installed" "command -v podman >/dev/null"
 
 echo "== Obsidian =="
 vault="$(json_value vault)"

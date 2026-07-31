@@ -5,18 +5,11 @@
   gather_facts: true
   vars_files:
     - ../vars.yml
-  vars:
-    managed_agent: >-
-      {{ hermes_agents | selectattr('name', 'equalto', hermes_default_profile) | first }}
   tasks:
     - name: Write resolved expectations
       ansible.builtin.copy:
         content: >-
           {{ {
-            'profile': hermes_default_profile,
-            'crons': managed_agent.crons | default([]),
-            'gateway': managed_agent.gateway | default(false) | bool,
-            'persona': managed_agent.persona is defined,
             'vault': obsidian_vault_path,
             'journal_folder': obsidian_journal_folder,
             'templates_folder': obsidian_templates_folder

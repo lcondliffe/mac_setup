@@ -19,8 +19,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - Dictation (`dictation_apps`, currently **superwhisper**): hold `fn` in a herdr pane and the transcript arrives in that agent's prompt. Installs the cask and reports the manual setup — see [Dictating to agents](#dictating-to-agents).
 - VSCode extensions
 - Obsidian daily journalling: configures Daily Notes to create `Journal/YYYY-MM-DD.md` from a concise, emoji-headed template
-- Hermes agents: installs the Hermes CLI (rolling, tracks `hermes_git_branch`) and configures one on-device profile per entry in `hermes_agents` (default `mack`, using model `gpt-5.6-sol` via the `openai-codex` OAuth provider). Adding an agent is a single `hermes_agents` list entry. Each agent can declare `crons` (scheduled jobs, reconciled by name into `<profile>/cron/jobs.json`) — e.g. a `daily-standup` at 08:00. An agent with `gateway: true` gets a per-profile launchd **user** service (no sudo) that runs the cron scheduler and starts on login, so its crons actually fire. Upgrades are opt-in via `-t upgrade` (runs `hermes update`: pulls latest, reinstalls deps, re-syncs skills, migrates config). The subscription credential is **not** stored in git — each agent with `auth: true` triggers a **one-time interactive OAuth login** saved to `~/.hermes/auth.json`.
-  - The bundled `daily-standup` is scoped to yesterday's single journal file and Hermes session history. It must not search other local directories; calendar lookup remains disabled until an integration is configured.
+- Mack, the on-device agent: symlinks `~/.local/bin/mack` to the CLI in the [mack](https://github.com/lcondliffe/mack) repo, which is where the agent itself now lives — it runs in a podman container, and its persona, model and schedule are configured there. This repo installs podman and claims the `mack` name on `PATH`; nothing else. Clone the mack repo to `mack_repo_path` first, or the task reports it and skips.
 
 **Not managed (intentional):** any plaintext secrets you may have in `~/.zshrc` / `~/.zprofile`. The playbook writes its content inside marker blocks (`# BEGIN/END ANSIBLE MANAGED BLOCK: ...`), so anything else in those files is left alone. If you want to keep secrets out of git, move them to `~/.zshrc.secrets` and source it from `~/.zshrc`.
 
@@ -29,7 +28,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 All knobs live in [`vars.yml`](vars.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
-- `hermes_agents`, `hermes_default_profile`, `hermes_auth_enabled`
+- `mack_repo_path`
 - `obsidian_vault_path`, `obsidian_journal_folder`, `obsidian_templates_folder`
 - `shell_aliases`, `env_vars`
 - `directories`
@@ -62,15 +61,15 @@ Targeted runs with tags (faster, incremental):
 |---|---|
 | `ssh` | SSH key gate (also runs on every invocation via `always`) |
 | `homebrew` | Taps, formulae, casks |
-| `upgrade` | Brew formulae and pipx packages upgraded to latest; `hermes update` (pull latest + reinstall deps + re-sync skills + migrate config) |
+| `upgrade` | Brew formulae and pipx packages upgraded to latest |
 | `cleanup` | `brew autoremove` + `brew cleanup --prune=all` (housekeeping) |
 | `aliases,shell` | Just the aliases managed block |
 | `env,shell` | Just the env-vars managed block |
 | `git` | Global git config |
 | `pipx` | pipx packages |
 | `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
-| `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
-| `hermes` | Install Hermes + configure agent profiles/models from `hermes_agents`; interactive OpenAI (Codex) login gate |
+| `herdr` | herdr `config.toml` + agent integrations (claude/codex state hooks) |
+| `mack` | Symlink the `mack` CLI from the mack repo onto `PATH` |
 | `obsidian` | Daily journal folders, template, and Daily Notes/Templates settings |
 | `dictation` | Dictation app install checks + permission/setup report (`dictation_apps`) |
 | `vscode` | VSCode extensions |

@@ -209,7 +209,7 @@ rsync -az --delete \
 # Make the SSH and OAuth gates unattended; later extra vars take precedence.
 PB_VARS=""
 [[ -n "$VARS_FILE" ]] && PB_VARS="-e @$VARS_FILE "
-PB_VARS+='-e ssh_gate_action=generate -e hermes_auth_enabled=false'
+PB_VARS+='-e ssh_gate_action=generate'
 SKIP="touchid"
 [[ -n "$EXTRA_SKIP_TAGS" ]] && SKIP="$SKIP,$EXTRA_SKIP_TAGS"
 TAG_ARG=""
