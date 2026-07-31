@@ -47,6 +47,10 @@
       ansible.builtin.include_tasks: tasks/obsidian.yml
       tags: [obsidian]
 
+    - name: Hermes agent (install only; its state is its own)
+      ansible.builtin.include_tasks: tasks/hermes.yml
+      tags: [hermes]
+
     - name: Mack CLI on PATH (the agent itself lives in the mack repo)
       ansible.builtin.include_tasks: tasks/mack.yml
       tags: [mack]
