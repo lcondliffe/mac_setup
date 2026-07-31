@@ -22,10 +22,14 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
-# Mack, the on-device agent, now lives in its own private repo and runs in a
-# podman container: github.com/lcondliffe/mack. This repo installs podman (see
-# brew_packages) and puts `mack` on PATH (see tasks/mack.yml); everything about
-# the agent itself — persona, model, schedule — is configured there.
+# Mack, the on-device agent, runs natively again: Hermes on this Mac, state in
+# ~/.hermes. This installs the CLI and nothing else — persona, model, crons,
+# memories and skills are the agent's own, grown by talking to it.
+hermes_install_enabled: true
+hermes_git_branch: main
+# Pinned. Bump deliberately, after -t upgrade and a check that state survived.
+hermes_commit: 9ecacd6bf414d272b40ac5756650fc1014143e8f
+
 mack_repo_path: "{{ ansible_env.HOME }}/repo/mack"
 
 # Daily Notes creates Journal/YYYY-MM-DD.md from the managed template.
@@ -174,6 +178,8 @@ herdr_integrations:
     requires: "{{ ansible_env.HOME }}/.claude"
   - name: codex
     requires: "{{ ansible_env.HOME }}/.codex"
+  - name: hermes
+    requires: "{{ ansible_env.HOME }}/.hermes"
 
 # Claude status line (see tasks/herdr.yml): prints the 5h/7d rate-limit figures
 # and reports them to herdr as the $usage sidebar token.
