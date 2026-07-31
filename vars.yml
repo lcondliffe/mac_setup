@@ -167,13 +167,13 @@ herdr_sidebar_max_width: 52
 # `requires` is the agent's own config directory: the agent creates it on first
 # launch, and `herdr integration install` fails without it, so tasks/herdr.yml
 # skips an integration until its directory exists.
+# There is no mack entry: it runs in a container, so its state lives inside the
+# podman VM where a host herdr hook cannot see it.
 herdr_integrations:
   - name: claude
     requires: "{{ ansible_env.HOME }}/.claude"
   - name: codex
     requires: "{{ ansible_env.HOME }}/.codex"
-  # No hermes entry: Mack runs in a container, so its state lives inside the
-  # podman VM where a host herdr hook cannot see it.
 
 # Claude status line (see tasks/herdr.yml): prints the 5h/7d rate-limit figures
 # and reports them to herdr as the $usage sidebar token.
