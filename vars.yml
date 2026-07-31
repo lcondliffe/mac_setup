@@ -22,77 +22,11 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
-# Hermes agents (Nous Research): one on-device profile per hermes_agents entry.
-# No secrets in git — `auth: true` triggers a one-time OAuth login to
-# ~/.hermes/auth.json. gpt-5.6-sol needs the openai-codex provider (not an API key).
-# Add an agent = append a list entry (name lowercase/alphanumeric).
-hermes_install_enabled: true
-
-# Rolling install tracking a branch (no release tags). Upgrade opt-in via
-# `-t upgrade` (runs `hermes update`). hermes_version is a reference label only.
-hermes_version: "0.19.0"
-hermes_git_branch: main
-
-# OAuth login gate; -e hermes_auth_enabled=false for unattended runs.
-hermes_auth_enabled: true
-
-# This machine's sticky-default profile.
-hermes_default_profile: mack
-
-hermes_agents:
-  - name: mack
-    description: "Main personal on-device agent."
-    provider: openai-codex
-    model: openai/gpt-5.6-sol
-    auth: true
-    # Per-profile launchd user service (no sudo) running the cron scheduler;
-    # starts on login. false = scheduler off, crons stay inert.
-    gateway: true
-    persona: |
-      # Mack
-
-      Managed by Ansible. You are Mack, Luke's main personal agent, running
-      on-device on his Mac. You are practical, direct, and proactive.
-
-      ## Daily journal
-
-      Luke's Obsidian daily notes live at
-      `~/Documents/Obsidian Vault/Journal/YYYY-MM-DD.md`. After meaningful work
-      reaches an outcome, append one concise bullet under `# 📝 Journal`, with
-      useful PR, pipeline, issue, or `[[note]]` links. Put new blockers or
-      follow-ups under `# ⚠️ Issues Arising`. Do not log routine commands,
-      narrate the conversation, duplicate entries, or alter `# 🎯 Plan` unless
-      asked. If today's note is missing, create it from
-      `Templates/Daily Journal.md` and preserve its structure. Use 🏠 by default;
-      change it to 🏢 only when Luke says he is at the office.
-    # Scheduled jobs, reconciled by name; fire only when the gateway runs.
-    # Optional fields: deliver, skills, workdir, enabled_toolsets.
-    crons:
-      - name: daily-standup
-        schedule: "0 8 * * *"
-        deliver: local
-        skills:
-          - obsidian
-        enabled_toolsets:
-          - file
-          - session_search
-        workdir: "{{ obsidian_vault_path }}/{{ obsidian_journal_folder }}"
-        prompt: >-
-          Draft a concise start-of-day brief with 3-5 prioritised plan
-          suggestions. Use only yesterday's single daily note at
-          {{ obsidian_vault_path }}/{{ obsidian_journal_folder }}/YYYY-MM-DD.md,
-          if it exists, plus Hermes session_search for yesterday's work. Do not
-          use terminal, search_files, or inspect any directory. Do not access
-          Photos, Media Library, Desktop, Downloads, Application Data, or any
-          file outside the Journal folder. Do not look for calendar events
-          until a calendar integration is explicitly configured. Return the
-          brief only; do not modify the journal.
-  # Add more agents here, e.g.:
-  # - name: scout
-  #   description: "Lightweight research agent."
-  #   provider: openrouter
-  #   model: openai/gpt-5.6-sol
-  #   auth: false
+# Mack, the on-device agent, now lives in its own private repo and runs in a
+# podman container: github.com/lcondliffe/mack. This repo installs podman (see
+# brew_packages) and puts `mack` on PATH (see tasks/mack.yml); everything about
+# the agent itself — persona, model, schedule — is configured there.
+mack_repo_path: "{{ ansible_env.HOME }}/repo/mack"
 
 # Daily Notes creates Journal/YYYY-MM-DD.md from the managed template.
 obsidian_vault_path: "{{ ansible_env.HOME }}/Documents/Obsidian Vault"
@@ -233,13 +167,13 @@ herdr_sidebar_max_width: 52
 # `requires` is the agent's own config directory: the agent creates it on first
 # launch, and `herdr integration install` fails without it, so tasks/herdr.yml
 # skips an integration until its directory exists.
+# There is no mack entry: it runs in a container, so its state lives inside the
+# podman VM where a host herdr hook cannot see it.
 herdr_integrations:
   - name: claude
     requires: "{{ ansible_env.HOME }}/.claude"
   - name: codex
     requires: "{{ ansible_env.HOME }}/.codex"
-  - name: hermes
-    requires: "{{ ansible_env.HOME }}/.hermes"
 
 # Claude status line (see tasks/herdr.yml): prints the 5h/7d rate-limit figures
 # and reports them to herdr as the $usage sidebar token.

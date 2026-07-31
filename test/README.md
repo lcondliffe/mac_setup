@@ -11,7 +11,7 @@ so a "does this still work on a fresh Mac?" answer doesn't require a fresh Mac.
    Any task that reports changed twice is a bug and is listed in the summary.
 3. **End state** — [`verify.sh`](verify.sh) asserts directories, the `.zshrc`
    managed blocks, git config, tooling on `PATH`, the generated SSH key, the
-   Hermes profile/persona/cron/gateway, the Obsidian journal setup, and the
+   `mack` symlink, the Obsidian journal setup, and the
    macOS `defaults`. Package coverage is derived from `vars.yml` by running the
    playbook's own `audit` tag, so it can't drift from the package lists.
 4. **touchid** (opt-in, `--touchid`) — the one task needing root.
@@ -69,8 +69,8 @@ test/vm_test.sh --touchid
 Iterate on a failure without paying for a re-clone:
 
 ```bash
-test/vm_test.sh --keep --tags hermes
-test/vm_test.sh --reuse --keep --tags hermes
+test/vm_test.sh --keep --tags obsidian
+test/vm_test.sh --reuse --keep --tags obsidian
 ```
 
 Logs land in `test/logs/<timestamp>/` (gitignored): `run1-bootstrap.log`,
@@ -78,19 +78,19 @@ Logs land in `test/logs/<timestamp>/` (gitignored): `run1-bootstrap.log`,
 
 ## What is stubbed out, and why
 
-Two tasks pause for input on a fresh machine. The harness drives them down their
-unattended paths, so those specific prompts are **not** covered:
+One task pauses for input on a fresh machine. The harness drives it down its
+unattended path, so that prompt is **not** covered:
 
 - `-e ssh_gate_action=generate` — takes the "generate a key" branch of the SSH
   gate instead of prompting. The abort branch isn't exercised.
-- `-e hermes_auth_enabled=false` — skips the Hermes OAuth login, which needs a
-  browser and a real subscription. Everything else about the agent (profile,
-  model, `SOUL.md`, crons, gateway) is still tested.
+
+Mack is no longer covered here at all: the agent moved to its own repo and runs
+in a container, so this harness only checks that `mack` is on PATH.
 
 ## Minimal mode
 
 [`test-vars.yml`](test-vars.yml) overrides only the package lists and the Dock
-layout. Everything else — aliases, env block, git settings, the SSH gate, Hermes,
+layout. Everything else — aliases, env block, git settings, the SSH gate,
 Obsidian, krew, the macOS `defaults` — still comes from `vars.yml` and is tested
 for real. It keeps one tap, one cask, and five small formulae, which is enough to
 exercise every Homebrew code path (tap / formula / cask) without the download.
