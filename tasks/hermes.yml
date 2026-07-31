@@ -41,8 +41,10 @@
   when: not hermes_stat.stat.exists
   tags: [hermes, upgrade]
 
+# The git module clones and checks out; reading the SHA of an existing checkout
+# is not something it can do.
 - name: Read the installed commit
-  ansible.builtin.command: git -C {{ ansible_env.HOME }}/.hermes/hermes-agent rev-parse HEAD
+  ansible.builtin.command: git -C {{ ansible_env.HOME }}/.hermes/hermes-agent rev-parse HEAD  # noqa: command-instead-of-module
   register: hermes_installed_commit
   check_mode: false
   changed_when: false
