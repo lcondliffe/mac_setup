@@ -62,6 +62,7 @@ directories:
 # Homebrew taps
 homebrew_taps:
   - azure/functions
+  - cirruslabs/cli
   - fluxcd/tap
   - hashicorp/tap
   - homebrew/services
@@ -80,6 +81,7 @@ homebrew_formulae:
   - azure/functions/azure-functions-core-tools@4
   - bash
   - bat                                   # https://github.com/sharkdp/bat
+  - cirruslabs/cli/tart                   # macOS VMs for test/vm_test.sh
   - curl
   - dockutil                              # https://github.com/kcrawford/dockutil
   - eza                                   # https://github.com/eza-community/eza
