@@ -293,7 +293,8 @@ dock_apps:
   - /Applications/Obsidian.app
   - /Applications/Notion.app
   - /Applications/Claude.app
-  - /Applications/Codex.app
+  # No Codex.app here: the codex cask became CLI-only (bin/codex), so there is
+  # no app bundle to pin.
 
 # macOS Finder preferences (applied via community.general.osx_defaults)
 # domain is per-item because these span NSGlobalDomain, Finder, and desktopservices.

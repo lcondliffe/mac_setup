@@ -31,6 +31,35 @@
   when: dock_manage_layout and not dockutil_bin.stat.exists
   tags: [dock, macos]
 
+# Pinning a path that does not exist leaves a dangling "?" tile (and dockutil
+# can fail outright), so only apps present on disk make the layout. Missing
+# ones are reported below — usually a cask that has not been installed yet, or
+# one that stopped shipping an app bundle.
+- name: Check which Dock apps exist on disk
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ dock_apps }}"
+  register: dock_app_stats
+  when: dock_manage_layout and dockutil_bin.stat.exists
+  tags: [dock, macos]
+
+- name: Resolve the Dock apps to pin
+  ansible.builtin.set_fact:
+    dock_apps_present: "{{ dock_app_stats.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+    dock_apps_missing: "{{ dock_app_stats.results | rejectattr('stat.exists') | map(attribute='item') | list }}"
+  when: dock_manage_layout and dockutil_bin.stat.exists
+  tags: [dock, macos]
+
+- name: Report Dock apps skipped because they are not on disk
+  ansible.builtin.debug:
+    msg: >-
+      Not pinned (missing from disk): {{ dock_apps_missing | join(', ') }}.
+      Install them (-t homebrew) and re-run -t dock, or drop them from dock_apps.
+  when:
+    - dock_manage_layout and dockutil_bin.stat.exists
+    - dock_apps_missing | length > 0
+  tags: [dock, macos]
+
 - name: Read current Dock layout
   ansible.builtin.shell: set -o pipefail; /opt/homebrew/bin/dockutil --list | cut -f1
   args:
@@ -44,13 +73,13 @@
   ansible.builtin.shell: |
     set -euo pipefail
     /opt/homebrew/bin/dockutil --remove all --no-restart >/dev/null
-    {% for app in dock_apps %}
+    {% for app in dock_apps_present %}
     /opt/homebrew/bin/dockutil --add "{{ app }}" --no-restart >/dev/null
     {% endfor %}
     # Dock may not be running (headless CI session); the layout still lands.
     killall Dock || true
   vars:
-    dock_desired_labels: "{{ dock_apps | map('basename') | map('regex_replace', '\\.app$', '') | list }}"
+    dock_desired_labels: "{{ dock_apps_present | map('basename') | map('regex_replace', '\\.app$', '') | list }}"
   changed_when: true
   when:
     - dock_manage_layout and dockutil_bin.stat.exists

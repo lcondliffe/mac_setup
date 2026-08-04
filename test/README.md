@@ -95,10 +95,11 @@ Obsidian, krew, the macOS `defaults` — still comes from `vars.yml` and is test
 for real. It keeps one tap, one cask, and five small formulae, which is enough to
 exercise every Homebrew code path (tap / formula / cask) without the download.
 
-`dock_apps` has to be overridden too: the real list points at apps that only
-exist once the full cask list is installed, and `dockutil --add` on a missing
-path fails the task. Minimal mode points it at Safari and two
-`/System/Applications` bundles, so the Dock layout task still runs for real.
+`dock_apps` is overridden too: the real list points at apps that only exist
+once the full cask list is installed, and missing apps are skipped (with a
+report), which would leave the layout task nothing to pin. Minimal mode points
+it at Safari and two `/System/Applications` bundles, so the Dock layout task
+still runs for real.
 
 The audit-based package check reads whichever vars file the run used, so minimal
 mode checks the minimal lists — it can't produce false failures.
