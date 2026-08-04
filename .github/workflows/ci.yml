@@ -56,7 +56,10 @@ jobs:
       - name: Bootstrap (installs Ansible via brew, then runs the playbook)
         run: ./bootstrap_mac.sh $PLAYBOOK_ARGS
       - name: Idempotency (second run must report changed=0)
+        # pipefail: without it, tee masks a failed playbook exit and a
+        # changed=0 recap from a failed run would false-pass this step.
         run: |
+          set -o pipefail
           ansible-playbook mac-setup.yml $PLAYBOOK_ARGS | tee run2.log
           changed=$(grep -Eo 'changed=[0-9]+' run2.log | tail -1 | cut -d= -f2)
           if [ "$changed" != 0 ]; then
@@ -66,3 +69,10 @@ jobs:
           fi
       - name: End-state checks
         run: bash test/verify.sh -e @test/test-vars.yml
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-ci-logs
+          path: run2.log
+          if-no-files-found: ignore

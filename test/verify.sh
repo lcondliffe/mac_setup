@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Assert end state not covered by the playbook audit; pass extra vars to audit.
+# Runs standalone on any machine the playbook has configured (VM, CI, or your
+# own): bash test/verify.sh [-e @test/test-vars.yml ...]
+
+# Everything here (resolve_vars.yml, files/obsidian/, mac-setup.yml) is
+# addressed relative to the repo root, so settle there regardless of caller.
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$HOME/.krew/bin:$PATH"
 
@@ -80,8 +86,26 @@ else
 fi
 
 echo "== SSH key gate =="
-check "ed25519 private key generated" "[ -f \"\$HOME/.ssh/id_ed25519\" ]"
-check "ed25519 public key generated"  "[ -f \"\$HOME/.ssh/id_ed25519.pub\" ]"
+# Same key types the gate itself accepts (tasks/ssh.yml); a fresh VM/CI run
+# will have the generated id_ed25519, a real machine may have any of them.
+check "a private key the gate accepts exists" \
+  "ls \"\$HOME/.ssh/id_ed25519\" \"\$HOME/.ssh/id_ecdsa\" \"\$HOME/.ssh/id_rsa\" 2>/dev/null | grep -q ."
+check "its public key exists" \
+  "ls \"\$HOME/.ssh/id_ed25519.pub\" \"\$HOME/.ssh/id_ecdsa.pub\" \"\$HOME/.ssh/id_rsa.pub\" 2>/dev/null | grep -q ."
+
+echo "== Terminal stack =="
+check "ghostty config rendered"   "[ -s \"\$HOME/.config/ghostty/config\" ]"
+check "starship config rendered"  "[ -s \"\$HOME/.config/starship.toml\" ]"
+check ".zshrc initialises starship" \
+  "grep -q 'starship init zsh' \"\$HOME/.zshrc\""
+
+echo "== herdr =="
+if command -v herdr >/dev/null 2>&1; then
+  check "herdr config rendered" "[ -s \"\$HOME/.config/herdr/config.toml\" ]"
+  check "herdr config validates" "herdr config check"
+else
+  echo "  SKIP  herdr checks (formula not in this run's package list)"
+fi
 
 echo "== Obsidian =="
 vault="$(json_value vault)"
@@ -118,7 +142,7 @@ else
   echo "  FAIL  could not run the audit task"
   audit_rc=1
 fi
-[ "$audit_rc" -eq 0 ] || failed=$((failed + 1))
+if [ "$audit_rc" -eq 0 ]; then pass=$((pass + 1)); else failed=$((failed + 1)); fi
 
 echo
 echo "== $pass passed, $failed failed =="
