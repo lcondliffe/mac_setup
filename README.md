@@ -78,7 +78,7 @@ Targeted runs with tags (faster, incremental):
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
 | `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
-| `audit` | Read-only drift report: installed brews/casks/extensions/pipx vs `vars.yml` |
+| `audit` | Read-only drift report: installed taps/brews/casks/extensions/pipx and the managed macOS `defaults` vs `vars.yml` |
 | `prune` | Uninstall brews/casks/extensions/pipx present on the machine but missing from `vars.yml`. Dry-run by default; add `-e prune_apply=true` to actually remove, and keep deliberate one-offs in the `prune_ignore_*` lists |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`

@@ -37,6 +37,15 @@ def main():
             rc = 1
         else:
             print(f"  PASS  {kind}: everything in vars.yml is installed")
+
+    drift = report.get("macos_defaults_drift", [])
+    if drift:
+        print("  FAIL  macos defaults: drifted from vars.yml ->")
+        for entry in drift:
+            print(f"          {entry}")
+        rc = 1
+    else:
+        print("  PASS  macos defaults: match vars.yml")
     return rc
 
 
