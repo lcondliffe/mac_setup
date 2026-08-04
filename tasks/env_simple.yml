@@ -1,6 +1,6 @@
 - name: Ensure .zshrc contains exported env vars (and PATH updates)
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts.env.HOME }}/.zshrc"
     create: true
     mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK: Exported env vars"

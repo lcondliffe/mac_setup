@@ -29,6 +29,14 @@
     state: latest
   tags: [never, upgrade]
 
+# greedy: also move casks whose apps self-update (see homebrew_cask_upgrade_greedy).
+- name: Upgrade Homebrew casks (run explicitly)
+  community.general.homebrew_cask:
+    name: "{{ homebrew_casks }}"
+    state: upgraded
+    greedy: "{{ homebrew_cask_upgrade_greedy | bool }}"
+  tags: [never, upgrade]
+
 - name: Install Homebrew casks
   community.general.homebrew_cask:
     name: "{{ item }}"

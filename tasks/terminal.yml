@@ -3,7 +3,7 @@
 
 - name: Ensure ghostty config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/ghostty"
+    path: "{{ ansible_facts.env.HOME }}/.config/ghostty"
     state: directory
     mode: "0755"
   tags: [ghostty, terminal]
@@ -11,14 +11,14 @@
 - name: Render ghostty config
   ansible.builtin.template:
     src: ghostty.config.j2
-    dest: "{{ ansible_env.HOME }}/.config/ghostty/config"
+    dest: "{{ ansible_facts.env.HOME }}/.config/ghostty/config"
     mode: "0644"
   tags: [ghostty, terminal]
 
 - name: Render starship config
   ansible.builtin.template:
     src: starship.toml.j2
-    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
+    dest: "{{ ansible_facts.env.HOME }}/.config/starship.toml"
     mode: "0644"
   tags: [starship, terminal, shell]
 
@@ -26,7 +26,7 @@
 # alias/env blocks as long as nothing else is added after it.
 - name: Ensure .zshrc initialises starship
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts.env.HOME }}/.zshrc"
     create: true
     mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK: starship prompt"

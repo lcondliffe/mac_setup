@@ -3,6 +3,12 @@
 # instead of silently drifting from the playbook.
 # Run with: ansible-playbook mac-setup.yml -t audit
 
+- name: Collect brew taps
+  ansible.builtin.command: /opt/homebrew/bin/brew tap
+  register: audit_brew_taps
+  changed_when: false
+  tags: [never, audit]
+
 - name: Collect brew formulae installed on request
   ansible.builtin.command: /opt/homebrew/bin/brew leaves --installed-on-request
   register: audit_brew_leaves
@@ -35,6 +41,46 @@
   failed_when: false
   tags: [never, audit]
 
+# Every macOS default the playbook manages, folded into one shape so a single
+# `defaults read` loop covers them: finder_defaults carry their own domain;
+# dock/screenshot defaults get theirs added; the fn key is a lone setting from
+# tasks/keyboard_shortcuts.yml.
+- name: Read current macOS defaults
+  ansible.builtin.command: defaults read {{ item.domain }} {{ item.key }}
+  vars:
+    audit_macos_defaults: >-
+      {{ finder_defaults
+         + (dock_defaults | map('combine', {'domain': 'com.apple.dock'}) | list)
+         + (screenshot_defaults | map('combine', {'domain': 'com.apple.screencapture'}) | list)
+         + [{'domain': 'com.apple.HIToolbox', 'key': 'AppleFnUsageType',
+             'type': 'int', 'value': fn_key_usage, 'name': 'fn/globe key behavior'}] }}
+  loop: "{{ audit_macos_defaults }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: audit_defaults_read
+  changed_when: false
+  failed_when: false
+  tags: [never, audit]
+
+# `defaults read` prints booleans as 1/0, so compare in that normal form.
+# Rendered to JSON because a multi-statement template stringifies its result;
+# the report parses it back with from_json.
+- name: Compute macOS defaults drift
+  ansible.builtin.set_fact:
+    audit_defaults_drift: >-
+      {%- set drift = [] -%}
+      {%- for r in audit_defaults_read.results -%}
+      {%- set want = ('1' if (r.item.value | bool) else '0')
+            if r.item.type == 'bool' else (r.item.value | string) -%}
+      {%- set have = (r.stdout | default('')) | trim -%}
+      {%- if have != want -%}
+      {%- set _ = drift.append(r.item.name ~ ' (' ~ r.item.domain ~ ' ' ~ r.item.key
+            ~ '): want ' ~ want ~ ', have ' ~ (have if have else '<unset>')) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ drift | to_json }}
+  tags: [never, audit]
+
 - name: Report drift between vars.yml and this machine
   vars:
     # vars.yml entries may be tap-qualified (hashicorp/tap/terraform) while
@@ -49,6 +95,8 @@
     have_pipx: "{{ audit_pipx.stdout_lines | default([]) | map('regex_replace', ' .*$', '') | list }}"
   ansible.builtin.debug:
     msg:
+      taps_installed_but_not_in_vars: "{{ audit_brew_taps.stdout_lines | difference(homebrew_taps) | sort }}"
+      taps_in_vars_but_not_installed: "{{ homebrew_taps | difference(audit_brew_taps.stdout_lines) | sort }}"
       formulae_installed_but_not_in_vars: "{{ have_requested_formulae | difference(want_formulae) | sort }}"
       formulae_in_vars_but_not_installed: "{{ want_formulae | difference(have_formulae) | sort }}"
       casks_installed_but_not_in_vars: "{{ audit_brew_casks.stdout_lines | difference(want_casks) | sort }}"
@@ -57,4 +105,5 @@
       vscode_in_vars_but_not_installed: "{{ want_extensions | difference(have_extensions) | sort }}"
       pipx_installed_but_not_in_vars: "{{ have_pipx | difference(pipx_packages) | sort }}"
       pipx_in_vars_but_not_installed: "{{ pipx_packages | difference(have_pipx) | sort }}"
+      macos_defaults_drift: "{{ audit_defaults_drift | from_json }}"
   tags: [never, audit]

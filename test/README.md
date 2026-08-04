@@ -11,7 +11,7 @@ so a "does this still work on a fresh Mac?" answer doesn't require a fresh Mac.
    Any task that reports changed twice is a bug and is listed in the summary.
 3. **End state** — [`verify.sh`](verify.sh) asserts directories, the `.zshrc`
    managed blocks, git config, tooling on `PATH`, the generated SSH key, the
-   `mack` symlink, the Obsidian journal setup, and the
+   Obsidian journal setup, and the
    macOS `defaults`. Package coverage is derived from `vars.yml` by running the
    playbook's own `audit` tag, so it can't drift from the package lists.
 4. **touchid** (opt-in, `--touchid`) — the one task needing root.
@@ -84,9 +84,6 @@ unattended path, so that prompt is **not** covered:
 - `-e ssh_gate_action=generate` — takes the "generate a key" branch of the SSH
   gate instead of prompting. The abort branch isn't exercised.
 
-Mack is no longer covered here at all: the agent moved to its own repo and runs
-in a container, so this harness only checks that `mack` is on PATH.
-
 ## Minimal mode
 
 [`test-vars.yml`](test-vars.yml) overrides only the package lists and the Dock
@@ -95,10 +92,11 @@ Obsidian, krew, the macOS `defaults` — still comes from `vars.yml` and is test
 for real. It keeps one tap, one cask, and five small formulae, which is enough to
 exercise every Homebrew code path (tap / formula / cask) without the download.
 
-`dock_apps` has to be overridden too: the real list points at apps that only
-exist once the full cask list is installed, and `dockutil --add` on a missing
-path fails the task. Minimal mode points it at Safari and two
-`/System/Applications` bundles, so the Dock layout task still runs for real.
+`dock_apps` is overridden too: the real list points at apps that only exist
+once the full cask list is installed, and missing apps are skipped (with a
+report), which would leave the layout task nothing to pin. Minimal mode points
+it at Safari and two `/System/Applications` bundles, so the Dock layout task
+still runs for real.
 
 The audit-based package check reads whichever vars file the run used, so minimal
 mode checks the minimal lists — it can't produce false failures.

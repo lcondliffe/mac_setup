@@ -1,0 +1,105 @@
+# Opt-in prune: the inverse of the install tasks. Anything installed on this
+# machine but missing from vars.yml gets uninstalled, making the package lists
+# authoritative in both directions (audit.yml only *reports* this drift).
+#
+# Dry-run by default: -t prune prints what would go, nothing is removed until
+# you pass -e prune_apply=true. Deliberate one-off installs you want to keep
+# belong in the prune_ignore_* lists in vars.yml.
+#
+# Formulae are compared via `brew leaves --installed-on-request`, so
+# dependencies of kept formulae are never candidates.
+# Run with: ansible-playbook mac-setup.yml -t prune [-e prune_apply=true]
+
+- name: Collect brew formulae installed on request
+  ansible.builtin.command: /opt/homebrew/bin/brew leaves --installed-on-request
+  register: prune_brew_leaves
+  changed_when: false
+  tags: [never, prune]
+
+- name: Collect installed brew casks
+  ansible.builtin.command: /opt/homebrew/bin/brew list --cask -1
+  register: prune_brew_casks
+  changed_when: false
+  tags: [never, prune]
+
+- name: Collect installed VSCode extensions
+  ansible.builtin.command: code --list-extensions
+  register: prune_code_extensions
+  changed_when: false
+  failed_when: false
+  tags: [never, prune]
+
+- name: Collect installed pipx packages
+  ansible.builtin.command: pipx list --short
+  register: prune_pipx
+  changed_when: false
+  failed_when: false
+  tags: [never, prune]
+
+# Same normalization as audit.yml: strip tap qualifiers before comparing, and
+# compare extension IDs case-insensitively (the marketplace is inconsistent).
+- name: Work out what would be pruned
+  ansible.builtin.set_fact:
+    prune_formulae: >-
+      {{ prune_brew_leaves.stdout_lines
+         | map('regex_replace', '^.*/', '') | list
+         | difference(homebrew_formulae | map('regex_replace', '^.*/', '') | list)
+         | difference(prune_ignore_formulae)
+         | sort }}
+    prune_casks: >-
+      {{ prune_brew_casks.stdout_lines
+         | difference(homebrew_casks | map('regex_replace', '^.*/', '') | list)
+         | difference(prune_ignore_casks)
+         | sort }}
+    prune_extensions: >-
+      {{ prune_code_extensions.stdout_lines | default([])
+         | map('lower')
+         | reject('in', vscode_extensions | map('lower') | list)
+         | reject('in', prune_ignore_vscode_extensions | map('lower') | list)
+         | list | sort }}
+    prune_pipx_packages: >-
+      {{ prune_pipx.stdout_lines | default([])
+         | map('regex_replace', ' .*$', '') | list
+         | difference(pipx_packages)
+         | difference(prune_ignore_pipx)
+         | sort }}
+  tags: [never, prune]
+
+- name: Report the prune plan
+  ansible.builtin.debug:
+    msg:
+      mode: "{{ 'APPLY — the items below are being uninstalled' if prune_apply | bool
+                else 'DRY RUN — re-run with -e prune_apply=true to uninstall' }}"
+      formulae_to_remove: "{{ prune_formulae }}"
+      casks_to_remove: "{{ prune_casks }}"
+      vscode_extensions_to_remove: "{{ prune_extensions }}"
+      pipx_packages_to_remove: "{{ prune_pipx_packages }}"
+  tags: [never, prune]
+
+- name: Uninstall brew formulae not in vars.yml
+  ansible.builtin.command: /opt/homebrew/bin/brew uninstall {{ item }}
+  loop: "{{ prune_formulae }}"
+  when: prune_apply | bool
+  changed_when: true
+  tags: [never, prune]
+
+- name: Uninstall brew casks not in vars.yml
+  ansible.builtin.command: /opt/homebrew/bin/brew uninstall --cask {{ item }}
+  loop: "{{ prune_casks }}"
+  when: prune_apply | bool
+  changed_when: true
+  tags: [never, prune]
+
+- name: Uninstall VSCode extensions not in vars.yml
+  ansible.builtin.command: code --uninstall-extension {{ item }}
+  loop: "{{ prune_extensions }}"
+  when: prune_apply | bool
+  changed_when: true
+  tags: [never, prune]
+
+- name: Uninstall pipx packages not in vars.yml
+  ansible.builtin.command: pipx uninstall {{ item }}
+  loop: "{{ prune_pipx_packages }}"
+  when: prune_apply | bool
+  changed_when: true
+  tags: [never, prune]

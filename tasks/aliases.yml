@@ -1,6 +1,6 @@
 - name: Ensure .zshrc contains a managed block for custom aliases
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts.env.HOME }}/.zshrc"
     create: true
     mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK: Custom Aliases"

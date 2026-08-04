@@ -83,17 +83,6 @@ echo "== SSH key gate =="
 check "ed25519 private key generated" "[ -f \"\$HOME/.ssh/id_ed25519\" ]"
 check "ed25519 public key generated"  "[ -f \"\$HOME/.ssh/id_ed25519.pub\" ]"
 
-echo "== Mack =="
-# The agent itself lives in the mack repo and runs in a container; this repo is
-# only responsible for putting the CLI on PATH.
-mack_link="$HOME/.local/bin/mack"
-if [ -e "$mack_link" ] || [ -L "$mack_link" ]; then
-  check "mack symlinked to the mack repo" "[ -L \"$mack_link\" ]"
-else
-  echo "  SKIP  mack on PATH (mack repo not cloned in this run)"
-fi
-check "podman installed" "command -v podman >/dev/null"
-
 echo "== Obsidian =="
 vault="$(json_value vault)"
 journal_folder="$(json_value journal_folder)"
