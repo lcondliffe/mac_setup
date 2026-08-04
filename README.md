@@ -19,16 +19,18 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - Dictation (`dictation_apps`, currently **superwhisper**): hold `fn` in a herdr pane and the transcript arrives in that agent's prompt. Installs the cask and reports the manual setup — see [Dictating to agents](#dictating-to-agents).
 - VSCode extensions
 - Obsidian daily journalling: configures Daily Notes to create `Journal/YYYY-MM-DD.md` from a concise, emoji-headed template
-- Mack, the on-device agent: symlinks `~/.local/bin/mack` to the CLI in the [mack](https://github.com/lcondliffe/mack) repo, which is where the agent itself now lives — it runs in a podman container, and its persona, model and schedule are configured there. This repo installs podman and claims the `mack` name on `PATH`; nothing else. Clone the mack repo to `mack_repo_path` first, or the task reports it and skips.
+- Hermes, the on-device agent: installs the upstream CLI pinned to `hermes_commit` and its launchd gateway (so crons survive logout). Install-only by design — see below.
 
-**Not managed (intentional):** any plaintext secrets you may have in `~/.zshrc` / `~/.zprofile`. The playbook writes its content inside marker blocks (`# BEGIN/END ANSIBLE MANAGED BLOCK: ...`), so anything else in those files is left alone. If you want to keep secrets out of git, move them to `~/.zshrc.secrets` and source it from `~/.zshrc`.
+**Not managed (intentional):**
+- Any plaintext secrets you may have in `~/.zshrc` / `~/.zprofile`. The playbook writes its content inside marker blocks (`# BEGIN/END ANSIBLE MANAGED BLOCK: ...`), so anything else in those files is left alone. If you want to keep secrets out of git, move them to `~/.zshrc.secrets` and source it from `~/.zshrc`.
+- Hermes' state in `~/.hermes` (persona/SOUL.md, profiles, memories, config, skills). It's the agent's own, grown by talking to it — an earlier attempt at reconciling it from git fought every organic change. Back it up separately instead of managing it as code.
 
 ## Configuration
 
 All knobs live in [`vars.yml`](vars.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
-- `mack_repo_path`
+- `hermes_commit`, `hermes_install_enabled`
 - `obsidian_vault_path`, `obsidian_journal_folder`, `obsidian_templates_folder`
 - `shell_aliases`, `env_vars`
 - `directories`
@@ -68,8 +70,8 @@ Targeted runs with tags (faster, incremental):
 | `git` | Global git config |
 | `pipx` | pipx packages |
 | `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
-| `herdr` | herdr `config.toml` + agent integrations (claude/codex state hooks) |
-| `mack` | Symlink the `mack` CLI from the mack repo onto `PATH` |
+| `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
+| `hermes` | Hermes agent CLI (pinned to `hermes_commit`) + launchd gateway; `-t upgrade` moves the pin |
 | `obsidian` | Daily journal folders, template, and Daily Notes/Templates settings |
 | `dictation` | Dictation app install checks + permission/setup report (`dictation_apps`) |
 | `vscode` | VSCode extensions |

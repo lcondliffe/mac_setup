@@ -51,10 +51,6 @@
       ansible.builtin.include_tasks: tasks/hermes.yml
       tags: [hermes]
 
-    - name: Mack CLI on PATH (the agent itself lives in the mack repo)
-      ansible.builtin.include_tasks: tasks/mack.yml
-      tags: [mack]
-
     - name: herdr config + agent integrations (agent state reporting)
       ansible.builtin.include_tasks: tasks/herdr.yml
       tags: [herdr, agents]

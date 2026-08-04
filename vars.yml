@@ -22,15 +22,14 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
-# Mack, the on-device agent, runs natively again: Hermes on this Mac, state in
-# ~/.hermes. This installs the CLI and nothing else — persona, model, crons,
-# memories and skills are the agent's own, grown by talking to it.
+# Hermes, the on-device agent (Nous Research). This installs the CLI and its
+# launchd gateway and nothing else — the agent's own state lives in ~/.hermes
+# (persona/SOUL.md, profiles, memories, config, skills), grown by talking to
+# it. That state is deliberately NOT managed as code: back it up separately.
 hermes_install_enabled: true
 hermes_git_branch: main
 # Pinned. Bump deliberately, after -t upgrade and a check that state survived.
 hermes_commit: 9ecacd6bf414d272b40ac5756650fc1014143e8f
-
-mack_repo_path: "{{ ansible_facts.env.HOME }}/repo/mack"
 
 # Daily Notes creates Journal/YYYY-MM-DD.md from the managed template.
 obsidian_vault_path: "{{ ansible_facts.env.HOME }}/Documents/Obsidian Vault"
@@ -176,8 +175,6 @@ herdr_sidebar_max_width: 52
 # `requires` is the agent's own config directory: the agent creates it on first
 # launch, and `herdr integration install` fails without it, so tasks/herdr.yml
 # skips an integration until its directory exists.
-# There is no mack entry: it runs in a container, so its state lives inside the
-# podman VM where a host herdr hook cannot see it.
 herdr_integrations:
   - name: claude
     requires: "{{ ansible_facts.env.HOME }}/.claude"
