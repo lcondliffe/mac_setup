@@ -48,7 +48,7 @@
     "select client, service, auth_value from access where client in ({{ dictation_clients }})"
   loop:
     - "/Library/Application Support/com.apple.TCC/TCC.db"
-    - "{{ ansible_env.HOME }}/Library/Application Support/com.apple.TCC/TCC.db"
+    - "{{ ansible_facts.env.HOME }}/Library/Application Support/com.apple.TCC/TCC.db"
   vars:
     dictation_clients: >-
       {{ dictation_apps | map(attribute='bundle_id')

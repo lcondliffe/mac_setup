@@ -11,7 +11,7 @@
 
 - name: Ensure herdr config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/herdr"
+    path: "{{ ansible_facts.env.HOME }}/.config/herdr"
     state: directory
     mode: "0755"
   tags: [herdr, agents]
@@ -19,7 +19,7 @@
 - name: Render herdr config
   ansible.builtin.template:
     src: herdr.config.toml.j2
-    dest: "{{ ansible_env.HOME }}/.config/herdr/config.toml"
+    dest: "{{ ansible_facts.env.HOME }}/.config/herdr/config.toml"
     mode: "0644"
   register: herdr_config
   tags: [herdr, agents]

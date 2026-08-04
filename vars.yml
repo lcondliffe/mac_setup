@@ -30,10 +30,10 @@ hermes_git_branch: main
 # Pinned. Bump deliberately, after -t upgrade and a check that state survived.
 hermes_commit: 9ecacd6bf414d272b40ac5756650fc1014143e8f
 
-mack_repo_path: "{{ ansible_env.HOME }}/repo/mack"
+mack_repo_path: "{{ ansible_facts.env.HOME }}/repo/mack"
 
 # Daily Notes creates Journal/YYYY-MM-DD.md from the managed template.
-obsidian_vault_path: "{{ ansible_env.HOME }}/Documents/Obsidian Vault"
+obsidian_vault_path: "{{ ansible_facts.env.HOME }}/Documents/Obsidian Vault"
 obsidian_journal_folder: Journal
 obsidian_templates_folder: Templates
 obsidian_daily_notes_config:
@@ -44,20 +44,20 @@ obsidian_daily_notes_config:
 # SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
 # to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
 ssh_gate_enabled: true
-ssh_dir: "{{ ansible_env.HOME }}/.ssh"
+ssh_dir: "{{ ansible_facts.env.HOME }}/.ssh"
 ssh_key_path: "{{ ssh_dir }}/id_ed25519"
 
 # home directory structure
 directories:
-  - "{{ ansible_env.HOME }}/ansible"
-  - "{{ ansible_env.HOME }}/ansible/playbooks"
-  - "{{ ansible_env.HOME }}/ansible/roles"
-  - "{{ ansible_env.HOME }}/repo"
-  - "{{ ansible_env.HOME }}/repo/private"
-  - "{{ ansible_env.HOME }}/repo/public"
-  - "{{ ansible_env.HOME }}/repo/training"
-  - "{{ ansible_env.HOME }}/scripts"
-  - "{{ ansible_env.HOME }}/temp"
+  - "{{ ansible_facts.env.HOME }}/ansible"
+  - "{{ ansible_facts.env.HOME }}/ansible/playbooks"
+  - "{{ ansible_facts.env.HOME }}/ansible/roles"
+  - "{{ ansible_facts.env.HOME }}/repo"
+  - "{{ ansible_facts.env.HOME }}/repo/private"
+  - "{{ ansible_facts.env.HOME }}/repo/public"
+  - "{{ ansible_facts.env.HOME }}/repo/training"
+  - "{{ ansible_facts.env.HOME }}/scripts"
+  - "{{ ansible_facts.env.HOME }}/temp"
 
 # Homebrew taps
 homebrew_taps:
@@ -180,15 +180,15 @@ herdr_sidebar_max_width: 52
 # podman VM where a host herdr hook cannot see it.
 herdr_integrations:
   - name: claude
-    requires: "{{ ansible_env.HOME }}/.claude"
+    requires: "{{ ansible_facts.env.HOME }}/.claude"
   - name: codex
-    requires: "{{ ansible_env.HOME }}/.codex"
+    requires: "{{ ansible_facts.env.HOME }}/.codex"
   - name: hermes
-    requires: "{{ ansible_env.HOME }}/.hermes"
+    requires: "{{ ansible_facts.env.HOME }}/.hermes"
 
 # Claude status line (see tasks/herdr.yml): prints the 5h/7d rate-limit figures
 # and reports them to herdr as the $usage sidebar token.
-claude_config_dir: "{{ ansible_env.HOME }}/.claude"
+claude_config_dir: "{{ ansible_facts.env.HOME }}/.claude"
 claude_settings_path: "{{ claude_config_dir }}/settings.json"
 claude_statusline_path: "{{ claude_config_dir }}/statusline.py"
 
@@ -214,7 +214,7 @@ dictation_apps:
     cask: superwhisper
     app_path: "/Applications/superwhisper.app"
     bundle_id: com.superduper.superwhisper
-    support_dir: "{{ ansible_env.HOME }}/Library/Application Support/superwhisper"
+    support_dir: "{{ ansible_facts.env.HOME }}/Library/Application Support/superwhisper"
     notes:
       - "Transcribes on-device; no word cap on the free tier."
       - "Bind to fn — freed by fn_key_usage in tasks/keyboard_shortcuts.yml."
@@ -309,7 +309,7 @@ finder_defaults:
 
 # macOS screenshot capture preferences (com.apple.screencapture)
 # Note: this is separate from the screenshot *hotkeys* above (symbolichotkeys).
-screenshot_location: "{{ ansible_env.HOME }}/Pictures/Screenshots"
+screenshot_location: "{{ ansible_facts.env.HOME }}/Pictures/Screenshots"
 screenshot_defaults:
   - { key: location, type: string, value: "{{ screenshot_location }}", name: "Save screenshots to ~/Pictures/Screenshots" }
   - { key: disable-shadow, type: bool, value: true, name: "Drop the window screenshot shadow" }

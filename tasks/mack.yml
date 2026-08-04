@@ -23,7 +23,7 @@
 - name: Put mack on PATH
   ansible.builtin.file:
     src: "{{ mack_repo_path }}/bin/mack"
-    dest: "{{ ansible_env.HOME }}/.local/bin/mack"
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/mack"
     state: link
     force: true
   when: mack_cli.stat.exists
