@@ -226,9 +226,8 @@ pipx_packages:
   - jmespath
 
 # Prune (-t prune) uninstalls anything installed here but absent from the
-# lists above (see tasks/prune.yml). Dry-run unless -e prune_apply=true.
-# Deliberate one-off installs that should survive pruning go here.
-prune_apply: false
+# lists above (see tasks/prune.yml) — it removes them straight away, so use
+# -t audit first to preview. Installs that should survive pruning go here.
 prune_ignore_formulae: []
 prune_ignore_casks: []
 prune_ignore_vscode_extensions: []

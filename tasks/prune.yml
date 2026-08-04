@@ -2,13 +2,13 @@
 # machine but missing from vars.yml gets uninstalled, making the package lists
 # authoritative in both directions (audit.yml only *reports* this drift).
 #
-# Dry-run by default: -t prune prints what would go, nothing is removed until
-# you pass -e prune_apply=true. Deliberate one-off installs you want to keep
+# This uninstalls immediately — use -t audit first if you want to see the drift
+# without touching anything. Deliberate one-off installs you want to keep
 # belong in the prune_ignore_* lists in vars.yml.
 #
 # Formulae are compared via `brew leaves --installed-on-request`, so
 # dependencies of kept formulae are never candidates.
-# Run with: ansible-playbook mac-setup.yml -t prune [-e prune_apply=true]
+# Run with: ansible-playbook mac-setup.yml -t prune
 
 - name: Collect brew formulae installed on request
   ansible.builtin.command: /opt/homebrew/bin/brew leaves --installed-on-request
@@ -68,8 +68,7 @@
 - name: Report the prune plan
   ansible.builtin.debug:
     msg:
-      mode: "{{ 'APPLY — the items below are being uninstalled' if prune_apply | bool
-                else 'DRY RUN — re-run with -e prune_apply=true to uninstall' }}"
+      mode: "Uninstalling the items below (run -t audit for a read-only report)"
       formulae_to_remove: "{{ prune_formulae }}"
       casks_to_remove: "{{ prune_casks }}"
       vscode_extensions_to_remove: "{{ prune_extensions }}"
@@ -79,27 +78,23 @@
 - name: Uninstall brew formulae not in vars.yml
   ansible.builtin.command: /opt/homebrew/bin/brew uninstall {{ item }}
   loop: "{{ prune_formulae }}"
-  when: prune_apply | bool
   changed_when: true
   tags: [never, prune]
 
 - name: Uninstall brew casks not in vars.yml
   ansible.builtin.command: /opt/homebrew/bin/brew uninstall --cask {{ item }}
   loop: "{{ prune_casks }}"
-  when: prune_apply | bool
   changed_when: true
   tags: [never, prune]
 
 - name: Uninstall VSCode extensions not in vars.yml
   ansible.builtin.command: code --uninstall-extension {{ item }}
   loop: "{{ prune_extensions }}"
-  when: prune_apply | bool
   changed_when: true
   tags: [never, prune]
 
 - name: Uninstall pipx packages not in vars.yml
   ansible.builtin.command: pipx uninstall {{ item }}
   loop: "{{ prune_pipx_packages }}"
-  when: prune_apply | bool
   changed_when: true
   tags: [never, prune]

@@ -81,7 +81,7 @@ Targeted runs with tags (faster, incremental):
 | `screenshots` | Screenshot save folder + no window shadow |
 | `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
 | `audit` | Read-only drift report: installed taps/brews/casks/extensions/pipx and the managed macOS `defaults` vs `vars.yml` |
-| `prune` | Uninstall brews/casks/extensions/pipx present on the machine but missing from `vars.yml`. Dry-run by default; add `-e prune_apply=true` to actually remove, and keep deliberate one-offs in the `prune_ignore_*` lists |
+| `prune` | Uninstall brews/casks/extensions/pipx present on the machine but missing from `vars.yml`. Uninstalls immediately — run `-t audit` first to preview the drift, and keep deliberate one-offs in the `prune_ignore_*` lists |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`
 

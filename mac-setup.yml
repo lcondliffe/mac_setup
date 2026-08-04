@@ -88,6 +88,6 @@
       ansible.builtin.include_tasks: tasks/audit.yml
       tags: [never, audit]
 
-    - name: Prune packages not in vars.yml (dry-run; -e prune_apply=true to remove)
+    - name: Prune packages not in vars.yml (uninstalls; run -t audit to preview)
       ansible.builtin.include_tasks: tasks/prune.yml
       tags: [never, prune]
