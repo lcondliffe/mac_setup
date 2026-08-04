@@ -32,3 +32,37 @@ jobs:
           # ansible-lint's pre-commit hook explicitly requests python3.13.
           python-version: "3.13"
       - uses: pre-commit/action@v3.0.1
+
+  # Real end-to-end run on a macOS (Apple Silicon) runner: bootstrap, assert
+  # the second run changes nothing, then the end-state checks — the same three
+  # gates as test/vm_test.sh, minus the truly-clean-machine guarantee (the
+  # runner image ships Homebrew and plenty of preinstalled tools, which the
+  # audit tolerates). Uses the cut-down test vars so it finishes in minutes;
+  # the Tart harness remains the full-fat test.
+  #
+  # Skipped tags: touchid needs -K/sudo prompting; hermes pulls an external
+  # installer and registers a launchd service — neither belongs on a shared
+  # runner.
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      PLAYBOOK_ARGS: >-
+        -e @test/test-vars.yml
+        -e ssh_gate_action=generate
+        --skip-tags touchid,hermes
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap (installs Ansible via brew, then runs the playbook)
+        run: ./bootstrap_mac.sh $PLAYBOOK_ARGS
+      - name: Idempotency (second run must report changed=0)
+        run: |
+          ansible-playbook mac-setup.yml $PLAYBOOK_ARGS | tee run2.log
+          changed=$(grep -Eo 'changed=[0-9]+' run2.log | tail -1 | cut -d= -f2)
+          if [ "$changed" != 0 ]; then
+            echo "::error::second run reported changed=$changed — tasks not idempotent:"
+            grep -B2 'changed:' run2.log | grep -E '^TASK' || true
+            exit 1
+          fi
+      - name: End-state checks
+        run: bash test/verify.sh -e @test/test-vars.yml

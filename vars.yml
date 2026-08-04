@@ -117,6 +117,11 @@ homebrew_formulae:
   - yamllint
   - zsh
 
+# -t upgrade also upgrades casks. Auto-updating apps (Chrome, VSCode, Claude…)
+# tell brew they are "latest", so they only move when greedy is on — leave it
+# off to let those apps update themselves.
+homebrew_cask_upgrade_greedy: false
+
 # Homebrew casks (GUI apps)
 homebrew_casks:
   - claude
@@ -219,6 +224,15 @@ dictation_apps:
 # pipx packages to install
 pipx_packages:
   - jmespath
+
+# Prune (-t prune) uninstalls anything installed here but absent from the
+# lists above (see tasks/prune.yml). Dry-run unless -e prune_apply=true.
+# Deliberate one-off installs that should survive pruning go here.
+prune_apply: false
+prune_ignore_formulae: []
+prune_ignore_casks: []
+prune_ignore_vscode_extensions: []
+prune_ignore_pipx: []
 
 # vscode extensions to install
 vscode_extensions:

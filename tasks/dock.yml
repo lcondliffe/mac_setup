@@ -47,7 +47,8 @@
     {% for app in dock_apps %}
     /opt/homebrew/bin/dockutil --add "{{ app }}" --no-restart >/dev/null
     {% endfor %}
-    killall Dock
+    # Dock may not be running (headless CI session); the layout still lands.
+    killall Dock || true
   vars:
     dock_desired_labels: "{{ dock_apps | map('basename') | map('regex_replace', '\\.app$', '') | list }}"
   changed_when: true

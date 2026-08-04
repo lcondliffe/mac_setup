@@ -61,7 +61,7 @@ Targeted runs with tags (faster, incremental):
 |---|---|
 | `ssh` | SSH key gate (also runs on every invocation via `always`) |
 | `homebrew` | Taps, formulae, casks |
-| `upgrade` | Brew formulae and pipx packages upgraded to latest |
+| `upgrade` | Brew formulae, casks, and pipx packages upgraded to latest (set `homebrew_cask_upgrade_greedy: true` to also move self-updating casks) |
 | `cleanup` | `brew autoremove` + `brew cleanup --prune=all` (housekeeping) |
 | `aliases,shell` | Just the aliases managed block |
 | `env,shell` | Just the env-vars managed block |
@@ -79,6 +79,7 @@ Targeted runs with tags (faster, incremental):
 | `screenshots` | Screenshot save folder + no window shadow |
 | `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
 | `audit` | Read-only drift report: installed brews/casks/extensions/pipx vs `vars.yml` |
+| `prune` | Uninstall brews/casks/extensions/pipx present on the machine but missing from `vars.yml`. Dry-run by default; add `-e prune_apply=true` to actually remove, and keep deliberate one-offs in the `prune_ignore_*` lists |
 
 Example: `ansible-playbook mac-setup.yml -t aliases,shell`
 
@@ -91,7 +92,12 @@ ansible-playbook --check mac-setup.yml
 
 ## Testing on a clean machine
 
-[`test/vm_test.sh`](test/README.md) runs the whole thing against a throwaway
+CI runs the playbook for real on a GitHub macOS runner on every push/PR:
+bootstrap, a second run asserting `changed=0`, and the end-state checks, using
+the cut-down [`test/test-vars.yml`](test/test-vars.yml) package lists.
+
+For the genuinely-clean-machine guarantee (the runner image ships Homebrew and
+a pile of preinstalled tools), [`test/vm_test.sh`](test/README.md) runs the whole thing against a throwaway
 macOS VM ([Tart](https://tart.run)): it clones a base image, boots it headless,
 runs `bootstrap_mac.sh` from nothing, re-runs the playbook to assert
 `changed=0`, and checks the resulting end state against `vars.yml`.
