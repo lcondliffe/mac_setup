@@ -1,9 +1,32 @@
-# Clean-machine test harness
+# Testing framework
 
-Runs the playbook end-to-end against a throwaway macOS VM ([Tart](https://tart.run)),
-so a "does this still work on a fresh Mac?" answer doesn't require a fresh Mac.
+Two legs, same three gates (bootstrap → idempotency → end state):
 
-## What it checks
+1. **CI** (`.github/workflows/ci.yml`, `macos` job) — every push/PR runs the
+   playbook for real on a GitHub `macos-15` runner with the cut-down
+   [`test-vars.yml`](test-vars.yml). Fast (~8 min) but not a clean machine:
+   the runner image ships Homebrew and a pile of preinstalled tools (the
+   audit tolerates extras), and it skips `touchid` (needs a sudo prompt) and
+   `hermes` (external installer + launchd service on a shared runner).
+   On failure the second run's log is uploaded as the `macos-ci-logs`
+   artifact.
+2. **VM harness** ([`vm_test.sh`](vm_test.sh)) — run on demand against a
+   throwaway macOS VM ([Tart](https://tart.run)), so a "does this still work
+   on a fresh Mac?" answer doesn't require a fresh Mac. This is the only leg
+   that proves the truly-clean first-run path (Homebrew install included),
+   `touchid`, `hermes`, and — without `--minimal` — the full package lists.
+
+## Files
+
+| File | Role |
+|---|---|
+| [`vm_test.sh`](vm_test.sh) | Clones/boots the Tart VM, syncs the repo in, drives the three gates over SSH |
+| [`verify.sh`](verify.sh) | End-state assertions; standalone — see below |
+| [`resolve_vars.yml`](resolve_vars.yml) | Renders vars.yml expectations (Obsidian paths) to JSON for verify.sh |
+| [`audit_check.py`](audit_check.py) | Turns the playbook's JSON `audit` report into pass/fail (fails on anything declared-but-missing, or macOS defaults drift) |
+| [`test-vars.yml`](test-vars.yml) | Minimal package lists layered over vars.yml (see Minimal mode) |
+
+## What the gates check
 
 1. **Bootstrap from nothing** — `./bootstrap_mac.sh` on a machine with no Homebrew
    and no Ansible, exercising the real first-run path.
@@ -11,10 +34,24 @@ so a "does this still work on a fresh Mac?" answer doesn't require a fresh Mac.
    Any task that reports changed twice is a bug and is listed in the summary.
 3. **End state** — [`verify.sh`](verify.sh) asserts directories, the `.zshrc`
    managed blocks, git config, tooling on `PATH`, the generated SSH key, the
-   Obsidian journal setup, and the
-   macOS `defaults`. Package coverage is derived from `vars.yml` by running the
-   playbook's own `audit` tag, so it can't drift from the package lists.
+   terminal stack (ghostty/starship), the herdr config, the Obsidian journal
+   setup, and the macOS `defaults`. Package coverage is derived from
+   `vars.yml` by running the playbook's own `audit` tag, so it can't drift
+   from the package lists.
 4. **touchid** (opt-in, `--touchid`) — the one task needing root.
+
+### Running verify.sh on its own
+
+`verify.sh` works on any machine the playbook has configured — the VM, CI, or
+your real one — and changes into the repo root itself:
+
+```bash
+bash test/verify.sh                          # against vars.yml
+bash test/verify.sh -e @test/test-vars.yml   # against the minimal lists
+```
+
+Extra arguments are passed to the expectation-resolving playbook and the
+audit run, so pass the same `-e` overrides the playbook run used.
 
 ## Prerequisites
 
@@ -24,7 +61,17 @@ tart clone ghcr.io/cirruslabs/macos-tahoe-base:latest tahoe-base
 ```
 
 The base VM is only ever **cloned**, never modified. Cirrus base images use
-`admin` / `admin` with passwordless sudo; override with `VM_USER` / `VM_PASS`.
+`admin` / `admin` with passwordless sudo.
+
+Environment knobs (all optional):
+
+| Variable | Default | Effect |
+|---|---|---|
+| `VM_USER` / `VM_PASS` | `admin` / `admin` | Guest credentials |
+| `BASE_VM` | `tahoe-base` | Base image to clone (same as `--base`) |
+| `TEST_VM` | `mac-setup-test` | Ephemeral VM name (same as `--vm`) |
+| `LOG_DIR` | `test/logs` | Where per-run log directories land |
+| `BOOT_TIMEOUT` | `300` | Seconds to wait for the VM to get an IP |
 
 ## Usage
 

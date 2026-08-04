@@ -26,6 +26,7 @@ git_settings:
 # launchd gateway and nothing else — the agent's own state lives in ~/.hermes
 # (persona/SOUL.md, profiles, memories, config, skills), grown by talking to
 # it. That state is deliberately NOT managed as code: back it up separately.
+# false skips every hermes task (used by CI/shared machines).
 hermes_install_enabled: true
 hermes_git_branch: main
 # Pinned. Bump deliberately, after -t upgrade and a check that state survived.
