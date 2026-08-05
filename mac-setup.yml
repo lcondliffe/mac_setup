@@ -45,7 +45,7 @@
 
     - name: Hermes agent (install only; its state is its own)
       ansible.builtin.include_tasks: tasks/hermes.yml
-      tags: [hermes]
+      tags: [hermes, upgrade]
 
     - name: herdr config + agent integrations (agent state reporting)
       ansible.builtin.include_tasks: tasks/herdr.yml

@@ -18,8 +18,9 @@ git_settings:
 
 hermes_install_enabled: true
 hermes_git_branch: main
-# Pinned. Bump deliberately, after -t upgrade and a check that state survived.
-hermes_commit: 9ecacd6bf414d272b40ac5756650fc1014143e8f
+# Pinned to a release tag. Upstream tags by date; the semver (0.20.0 here) is
+# only in pyproject.toml. Bump deliberately, after a check that state survived.
+hermes_release_tag: v2026.8.3
 
 # SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
 # to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
@@ -42,7 +43,11 @@ directories:
 # brew trust --tap every tap below: declaring one here is the trust decision
 homebrew_trust_taps: true
 homebrew_upgrade_exclude:
-  - ansible # If ansible is upgraded, it breaks the playbook run in progress.
+  - ansible
+
+# Chrome self-updates and fights brew over the app bundle. Let it update itself.
+homebrew_cask_upgrade_exclude:
+  - google-chrome # If ansible is upgraded, it breaks the playbook run in progress.
 
 # Homebrew taps
 homebrew_taps:

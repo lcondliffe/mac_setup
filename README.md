@@ -18,7 +18,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - herdr: `~/.config/herdr/config.toml` (rendered from [`templates/`](templates); deliberate overrides only) plus per-agent state-reporting hooks (`herdr_integrations`) so the sidebar and attention queue can tell running agents apart. Each integration installs into that agent's own config directory, which only exists once the agent has been launched — installing the cask is not enough. Integrations for agents that have never run are skipped with a message; launch them once, then re-run `-t herdr`. Also installs a Claude Code status line (`~/.claude/statusline.py`, rendered from [`templates/`](templates)) that prints Claude's 5h/7d rate-limit usage and reports it to herdr as a `$usage` pane token, shown on the sidebar's claude rows. Claude's status-line payload is the only place those figures are exposed, so there is no equivalent for codex — its rate limits are only in its session logs. The `statusLine` key is merged into `~/.claude/settings.json`; the rest of that file (hooks, model, plugins) is left alone.
 - Dictation: installs the **superwhisper** cask so you can talk to agents in a herdr pane — see [Dictating to agents](#dictating-to-agents). Its own config stays in the app.
 - VSCode extensions
-- Hermes, the on-device agent: installs the upstream CLI pinned to `hermes_commit` and its launchd gateway (so crons survive logout). Install-only by design — see below.
+- Hermes, the on-device agent: installs the upstream CLI pinned to `hermes_release_tag` and its launchd gateway (so crons survive logout). Install-only by design — see below.
 
 **Not managed (intentional):**
 - Any plaintext secrets you may have in `~/.zshrc` / `~/.zprofile`. The playbook writes its content inside marker blocks (`# BEGIN/END ANSIBLE MANAGED BLOCK: ...`), so anything else in those files is left alone. If you want to keep secrets out of git, move them to `~/.zshrc.secrets` and source it from `~/.zshrc`.
@@ -30,7 +30,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 All knobs live in [`vars.yml`](vars.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
-- `hermes_commit`, `hermes_install_enabled`
+- `hermes_release_tag`, `hermes_install_enabled`
 - `shell_aliases`, `env_vars`
 - `directories`
 - `git_user_name`, `git_user_email`, `git_settings`
@@ -74,7 +74,7 @@ Targeted runs with tags (faster, incremental):
 | `pipx` | pipx packages |
 | `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
 | `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
-| `hermes` | Hermes agent CLI (pinned to `hermes_commit`) + launchd gateway; `-t upgrade` moves the pin |
+| `hermes` | Hermes agent CLI (pinned to `hermes_release_tag`) + launchd gateway; `-t upgrade` moves the pin |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys + what the fn/globe key does (`fn_key_usage`) |
 | `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |

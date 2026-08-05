@@ -14,15 +14,16 @@
   when: hermes_install_enabled | bool
   tags: [hermes, upgrade]
 
-# Pinned to a commit: install.sh tracks a rolling branch otherwise, and a
-# version jump can migrate the state.db schema without warning.
+# Pinned to a release tag: install.sh tracks a rolling branch otherwise, and a
+# version jump can migrate the state.db schema without warning. --commit takes
+# any rev, so the tag name goes straight through.
 - name: Install Hermes agent (upstream install.sh)
   ansible.builtin.shell: |
     set -euo pipefail
     curl -fsSL https://hermes-agent.nousresearch.com/install.sh -o /tmp/hermes-install.sh
     bash /tmp/hermes-install.sh \
       --branch {{ hermes_git_branch | quote }} \
-      --commit {{ hermes_commit | quote }} \
+      --commit {{ hermes_release_tag | quote }} \
       --force-commit
   args:
     executable: /bin/bash
@@ -48,34 +49,49 @@
     - not hermes_stat.stat.exists
   tags: [hermes, upgrade]
 
-# The git module clones and checks out; reading the SHA of an existing checkout
-# is not something it can do.
-- name: Read the installed commit
-  ansible.builtin.command: git -C {{ ansible_facts.env.HOME }}/.hermes/hermes-agent rev-parse HEAD  # noqa: command-instead-of-module
-  register: hermes_installed_commit
+# The git module clones and checks out; reading the rev of an existing checkout
+# is not something it can do. --exact-match so an untagged commit reports empty
+# rather than the nearest tag, which would hide the drift.
+- name: Read the installed release tag
+  ansible.builtin.command:  # noqa: command-instead-of-module
+    cmd: git describe --tags --exact-match HEAD
+    chdir: "{{ ansible_facts.env.HOME }}/.hermes/hermes-agent"
+  register: hermes_installed_tag
   check_mode: false
   changed_when: false
   failed_when: false
   when: hermes_install_enabled | bool
   tags: [hermes, upgrade]
 
-- name: Warn when the installed commit is not the pinned one
+- name: Warn when the installed release is not the pinned one
   ansible.builtin.debug:
     msg: >-
-      Hermes is at {{ hermes_installed_commit.stdout | default('unknown') }},
-      not the pinned {{ hermes_commit }}. Re-run with -t upgrade to move it, or
-      update hermes_commit if the drift is intended.
+      Hermes is at {{ hermes_installed_tag.stdout | default('') | ternary(hermes_installed_tag.stdout, 'an untagged commit') }},
+      not the pinned {{ hermes_release_tag }}. Re-run with -t upgrade to move it,
+      or update hermes_release_tag if the drift is intended.
   when:
     - hermes_install_enabled | bool
-    - (hermes_installed_commit.stdout | default('')) != hermes_commit
+    - (hermes_installed_tag.stdout | default('')) != hermes_release_tag
   tags: [hermes, upgrade]
 
-# Opt-in (-t upgrade). Moves off the pin deliberately; bump hermes_commit after.
-- name: Upgrade Hermes to the latest release (run explicitly)
-  ansible.builtin.command: "{{ hermes_bin }} update --yes"
+# Opt-in (-t upgrade). Moves the checkout to whatever hermes_release_tag says,
+# rather than `hermes update`, which jumps to the head of the rolling branch and
+# would defeat the pin. To take a new release: bump the var, then run this.
+- name: Move Hermes to the pinned release (run explicitly)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh -o /tmp/hermes-install.sh
+    bash /tmp/hermes-install.sh \
+      --branch {{ hermes_git_branch | quote }} \
+      --commit {{ hermes_release_tag | quote }} \
+      --force-commit
+  args:
+    executable: /bin/bash
   register: hermes_update
   changed_when: true
-  when: hermes_install_enabled | bool
+  when:
+    - hermes_install_enabled | bool
+    - (hermes_installed_tag.stdout | default('')) != hermes_release_tag
   tags: [never, upgrade]
 
 # Crons only fire while the gateway runs, so it needs to survive a logout.
