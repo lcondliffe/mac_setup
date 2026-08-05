@@ -17,6 +17,27 @@
   loop: "{{ homebrew_taps }}"
   tags: [homebrew, packages, taps]
 
+# Brew silently refuses to load formulae from untrusted taps: the keg stays on
+# disk but vanishes from `brew leaves`, so tasks/audit.yml stops seeing it.
+- name: Read currently trusted Homebrew taps
+  ansible.builtin.command: /opt/homebrew/bin/brew trust --json v1
+  register: brew_trust_json
+  when: homebrew_trust_taps | bool
+  changed_when: false
+  tags: [homebrew, packages, taps]
+
+- name: Trust taps declared in vars.yml
+  ansible.builtin.command: /opt/homebrew/bin/brew trust --tap {{ item }}
+  when: homebrew_trust_taps | bool
+  # Official homebrew/* taps are always trusted but never recorded, so trusting
+  # them would report changed forever.
+  loop: >-
+    {{ homebrew_taps
+       | reject('match', '^homebrew/') | list
+       | difference((brew_trust_json.stdout | default('{}') | from_json).taps | default([])) }}
+  changed_when: true
+  tags: [homebrew, packages, taps]
+
 - name: Install Homebrew formulae
   community.general.homebrew:
     name: "{{ homebrew_formulae }}"

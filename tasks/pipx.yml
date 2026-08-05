@@ -1,6 +1,5 @@
-# A pipx venv symlinks an absolute interpreter path (.../python@3.13/bin/...).
-# Bumping the pinned python formula removes that keg, so every venv dangles and
-# pipx stops listing the package at all. Rebuild them against the current python.
+# A pipx venv symlinks an absolute interpreter path, so bumping the pinned python
+# formula leaves every venv dangling and unlisted. Rebuild against the new one.
 - name: Check pipx venvs for a missing interpreter
   ansible.builtin.command: pipx list --short
   register: pipx_list_result

@@ -39,6 +39,10 @@ directories:
   - "{{ ansible_facts.env.HOME }}/scripts"
   - "{{ ansible_facts.env.HOME }}/temp"
 
+# brew trust --tap every tap below: declaring one here is the trust decision.
+# Untrusted taps drop out of `brew leaves`, which blinds the audit/prune reports.
+homebrew_trust_taps: true
+
 # Homebrew taps
 homebrew_taps:
   - azure/functions
@@ -58,7 +62,6 @@ homebrew_formulae:
   - ansible
   - ansible-lint
   - azure-cli
-  - azure/functions/azure-functions-core-tools@4
   - bash
   - bat                                   # https://github.com/sharkdp/bat
   - cirruslabs/cli/tart                   # macOS VMs for test/vm_test.sh
