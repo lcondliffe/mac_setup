@@ -1,14 +1,11 @@
 ---
-# Mac System Environment Variables (non-secret)
 env_vars:
   SKIP: "terraform_checkov,end-of-file-fixer"
   PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/bin:$HOME/.local/bin:$HOME/.krew/bin:$PATH"
 
-# Git identity (override with -e git_user_email=...)
 git_user_name: "Luke Condliffe"
 git_user_email: "aero161.luke@gmail.com"
 
-# Global git settings beyond identity (git config --global <key> <value>)
 git_settings:
   credential.helper: osxkeychain
   core.pager: delta
@@ -186,14 +183,14 @@ prune_ignore_pipx: []
 # vscode extensions to install
 vscode_extensions:
   - azurite.azurite
-  - eamodio.gitlens                       # GitLens
+  - eamodio.gitlens
   - github.github-vscode-theme
   - github.vscode-github-actions
-  - hashicorp.terraform                   # HashiCorp Terraform
-  - matheusq94.tfs                        # Terraform Format on Save
+  - hashicorp.terraform
+  - matheusq94.tfs # Terraform Format on Save
   - ms-vscode-remote.remote-ssh
   - ms-vscode-remote.remote-ssh-edit
-  - ms-vscode.powershell                  # PowerShell
+  - ms-vscode.powershell
   - ms-vscode.remote-explorer
   - pkief.material-icon-theme
 
@@ -215,17 +212,12 @@ screenshot_hotkeys:
     name: "Copy selected area to clipboard (Cmd+Shift+4)"
     parameters: [52, 21, 1179648]
 
-# macOS Dock preferences (com.apple.dock)
-# Native, idempotent defaults applied via community.general.osx_defaults.
 dock_defaults:
   - key: show-recents
     type: bool
     value: false
     name: "Hide recent/suggested apps in Dock"
 
-# Declarative Dock layout (applied with dockutil, installed via brew above).
-# Apps are pinned in this order; anything else pinned to the Dock (apps or
-# folders) is removed. Set dock_manage_layout: false to leave the layout alone.
 dock_manage_layout: true
 dock_apps:
   - /Applications/Google Chrome.app
@@ -235,8 +227,6 @@ dock_apps:
   - /Applications/Notion.app
   - /Applications/Claude.app
 
-# macOS Finder preferences (applied via community.general.osx_defaults)
-# domain is per-item because these span NSGlobalDomain, Finder, and desktopservices.
 finder_defaults:
   - { domain: NSGlobalDomain, key: AppleShowAllExtensions, type: bool, value: true, name: "Show all file extensions" }
   - { domain: com.apple.finder, key: AppleShowAllFiles, type: bool, value: true, name: "Show hidden files" }
@@ -247,7 +237,6 @@ finder_defaults:
   - { domain: com.apple.desktopservices, key: DSDontWriteNetworkStores, type: bool, value: true, name: "No .DS_Store on network drives" }
 
 # macOS screenshot capture preferences (com.apple.screencapture)
-# Note: this is separate from the screenshot *hotkeys* above (symbolichotkeys).
 screenshot_location: "{{ ansible_facts.env.HOME }}/Pictures/Screenshots"
 screenshot_defaults:
   - { key: location, type: string, value: "{{ screenshot_location }}", name: "Save screenshots to ~/Pictures/Screenshots" }
