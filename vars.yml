@@ -203,11 +203,6 @@ vscode_extensions:
 # 0 frees fn for a dictation hotkey — macOS wins the key otherwise.
 fn_key_usage: 0
 
-# macOS screenshot keyboard shortcuts (com.apple.symbolichotkeys)
-# Makes Cmd+Shift+4 copy the selection to the clipboard. Both hotkeys are
-# needed: 30 owns Cmd+Shift+4 by default, so it has to move out of the way.
-#   parameters = [asciiCode, virtualKeyCode, modifierMask]
-#   Cmd+Shift = 1179648   Cmd+Ctrl+Shift = 1441792
 screenshot_hotkeys:
   - id: 30
     name: "Save selected area to file (Cmd+Ctrl+Shift+4)"
