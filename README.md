@@ -16,7 +16,7 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - pipx packages
 - Terminal: Ghostty config (`~/.config/ghostty/config`) and the starship prompt (`~/.config/starship.toml`), both rendered from [`templates/`](templates)
 - herdr: `~/.config/herdr/config.toml` (rendered from [`templates/`](templates); deliberate overrides only) plus per-agent state-reporting hooks (`herdr_integrations`) so the sidebar and attention queue can tell running agents apart. Each integration installs into that agent's own config directory, which only exists once the agent has been launched — installing the cask is not enough. Integrations for agents that have never run are skipped with a message; launch them once, then re-run `-t herdr`. Also installs a Claude Code status line (`~/.claude/statusline.py`, rendered from [`templates/`](templates)) that prints Claude's 5h/7d rate-limit usage and reports it to herdr as a `$usage` pane token, shown on the sidebar's claude rows. Claude's status-line payload is the only place those figures are exposed, so there is no equivalent for codex — its rate limits are only in its session logs. The `statusLine` key is merged into `~/.claude/settings.json`; the rest of that file (hooks, model, plugins) is left alone.
-- Dictation (`dictation_apps`, currently **superwhisper**): hold `fn` in a herdr pane and the transcript arrives in that agent's prompt. Installs the cask and reports the manual setup — see [Dictating to agents](#dictating-to-agents).
+- Dictation: installs the **superwhisper** cask so you can talk to agents in a herdr pane — see [Dictating to agents](#dictating-to-agents). Its own config stays in the app.
 - VSCode extensions
 - Hermes, the on-device agent: installs the upstream CLI pinned to `hermes_commit` and its launchd gateway (so crons survive logout). Install-only by design — see below.
 
@@ -57,7 +57,7 @@ ansible-playbook mac-setup.yml
 ```
 
 Output is kept to what changed and what needs your attention: skipped tasks are
-hidden, and informational dumps (git config, hermes version, dictation tips) only
+hidden, and informational dumps (git config, hermes version) only
 print with `-v`. Warnings and the audit/prune reports always show.
 
 Targeted runs with tags (faster, incremental):
@@ -75,7 +75,6 @@ Targeted runs with tags (faster, incremental):
 | `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
 | `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
 | `hermes` | Hermes agent CLI (pinned to `hermes_commit`) + launchd gateway; `-t upgrade` moves the pin |
-| `dictation` | Dictation app install checks + permission/setup report (`dictation_apps`) |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys + what the fn/globe key does (`fn_key_usage`) |
 | `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |
@@ -128,12 +127,7 @@ An SSH key is treated as a prerequisite: every run starts with a check for a pri
 
 [superwhisper](https://superwhisper.com) types into the focused window, so a focused herdr pane gets the transcript as a paste. Ghostty enables secure input at password prompts, so dictation is dead there by design.
 
-`-t dictation` checks the install and reports what is outstanding; `-e dictation_open_settings=true` opens the Settings panes. Grants are read from the TCC databases when the terminal has Full Disk Access, otherwise reported as unknown.
-
-Two steps stay manual:
-
-1. **Permissions** — grant Microphone and Accessibility (the latter is what lets it type into Ghostty). macOS only accepts these from a user click.
-2. **Hotkey and modes** — set in the app. A mode is a transcription model plus optional LLM reformatting under your own instructions; one aimed at coding agents ("preserve identifiers and paths verbatim, strip filler, stay imperative") can auto-activate when Ghostty is frontmost. Modes are JSON under `~/superwhisper`, so a good one can be templated later.
+The playbook installs the cask and stops there — permissions, hotkey, and modes are all set in the app. macOS only accepts the Microphone and Accessibility grants (the latter is what lets it type into Ghostty) from a user click anyway, and the modes are worth tuning by hand.
 
 `fn_key_usage: 0` (tag `keyboard`) frees fn by setting *Keyboard → "Press 🌐 key to"* to Do Nothing; otherwise macOS keeps the key and the hotkey never fires.
 

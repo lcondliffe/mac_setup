@@ -20,11 +20,6 @@ homebrew_casks:
 # Exercise VSCode's unavailable branch without audit drift.
 vscode_extensions: []
 
-# Same reason as dock_apps below: the real list names a cask minimal mode does
-# not install, and tasks/dictation.yml fails on a missing app. Empty keeps every
-# dictation task running with nothing to find.
-dictation_apps: []
-
 pipx_packages:
   - jmespath
 

@@ -9,9 +9,6 @@ git_user_name: "Luke Condliffe"
 git_user_email: "aero161.luke@gmail.com"
 
 # Global git settings beyond identity (git config --global <key> <value>)
-# delta (git-delta, installed via brew above) formats diff/log/show output;
-# pager.diff uses --paging=never so `git diff` prints straight to the
-# terminal (delta-formatted) instead of opening less.
 git_settings:
   credential.helper: osxkeychain
   core.pager: delta
@@ -22,11 +19,6 @@ git_settings:
   pull.rebase: "true"
   push.autoSetupRemote: "true"
 
-# Hermes, the on-device agent (Nous Research). This installs the CLI and its
-# launchd gateway and nothing else — the agent's own state lives in ~/.hermes
-# (persona/SOUL.md, profiles, memories, config, skills), grown by talking to
-# it. That state is deliberately NOT managed as code: back it up separately.
-# false skips every hermes task (used by CI/shared machines).
 hermes_install_enabled: true
 hermes_git_branch: main
 # Pinned. Bump deliberately, after -t upgrade and a check that state survived.
@@ -110,20 +102,16 @@ homebrew_formulae:
   - yamllint
   - zsh
 
-# -t upgrade also upgrades casks. Auto-updating apps (Chrome, VSCode, Claude…)
-# tell brew they are "latest", so they only move when greedy is on — leave it
-# off to let those apps update themselves.
 homebrew_cask_upgrade_greedy: false
 
 # Homebrew casks (GUI apps)
 homebrew_casks:
   - claude
-  - claude-code@latest                     # stable cask lags; @latest carries new models
-  # Remove a stale formula first: brew uninstall --formula codex
+  - claude-code@latest
   - codex
   - drawio
   - emdash
-  - font-jetbrains-mono-nerd-font         # ghostty_font_family (Nerd Font glyphs)
+  - font-jetbrains-mono-nerd-font
   - gcloud-cli
   - ghostty
   - google-chrome
@@ -135,24 +123,17 @@ homebrew_casks:
   - postman
   - powershell
   - scroll-reverser
-  - superwhisper                          # dictation; see tasks/dictation.yml
+  - superwhisper
   - terraform-linters/tap/tflint
   - twingate
   - visual-studio-code
   - zoom
 
-# Terminal stack (see tasks/terminal.yml). Configs live in templates/;
-# ghostty themes: `ghostty +list-themes`.
 ghostty_theme_dark: "Catppuccin Mocha"
 ghostty_theme_light: "Catppuccin Latte"
-# Needs the font-jetbrains-mono-nerd-font cask below; without it Ghostty silently
-# falls back to its bundled JetBrains Mono (no Nerd Font glyph coverage).
 ghostty_font_family: "JetBrainsMono Nerd Font Mono"
 ghostty_font_size: 15
 
-# herdr (see tasks/herdr.yml); config template in templates/herdr.config.toml.j2.
-# Sidebar ordering: "priority" = attention queue (agents needing input first);
-# "spaces" = grouped by workspace.
 herdr_agent_panel_sort: priority
 
 # Sidebar colours (Catppuccin Mocha, matching ghostty_theme_dark): agent name in
@@ -190,28 +171,6 @@ claude_statusline_setting:
   command: "{{ claude_statusline_path }}"
   refreshInterval: 60
 
-# Voice input to the agents (see tasks/dictation.yml). Chosen over Wispr Flow:
-# half the price, on-device transcription, JSON modes we could manage later.
-dictation_enabled: true
-
-# Opens the Microphone/Accessibility panes for apps not yet set up. Off so an
-# unattended run does not throw windows at you.
-dictation_open_settings: false
-
-# support_dir is created on first launch, so it doubles as "onboarded" —
-# same pattern as herdr_integrations.requires.
-dictation_apps:
-  - name: superwhisper
-    cask: superwhisper
-    app_path: "/Applications/superwhisper.app"
-    bundle_id: com.superduper.superwhisper
-    support_dir: "{{ ansible_facts.env.HOME }}/Library/Application Support/superwhisper"
-    notes:
-      - "Transcribes on-device; no word cap on the free tier."
-      - "Bind to fn — freed by fn_key_usage in tasks/keyboard_shortcuts.yml."
-      - "Modes are JSON under ~/superwhisper (cmd+c copies a deep link); could be templated once one is worth keeping."
-      - "Keep the modes folder out of iCloud Documents — the app loses track of it."
-
 # pipx packages to install
 pipx_packages:
   - jmespath
@@ -244,19 +203,11 @@ vscode_extensions:
 fn_key_usage: 0
 
 # macOS screenshot keyboard shortcuts (com.apple.symbolichotkeys)
-# Swaps the defaults so the simple combos copy to the clipboard, and the
-# file-saving behavior moves to the 4-key combos (nothing is lost).
+# Makes Cmd+Shift+4 copy the selection to the clipboard. Both hotkeys are
+# needed: 30 owns Cmd+Shift+4 by default, so it has to move out of the way.
 #   parameters = [asciiCode, virtualKeyCode, modifierMask]
-#   modifier masks: Cmd=1048576  Shift=131072  Ctrl=262144  Option=524288
-#     Cmd+Shift       = 1179648
-#     Cmd+Ctrl+Shift  = 1441792
+#   Cmd+Shift = 1179648   Cmd+Ctrl+Shift = 1441792
 screenshot_hotkeys:
-  - id: 28
-    name: "Save full screen to file (Cmd+Ctrl+Shift+3)"
-    parameters: [51, 20, 1441792]
-  - id: 29
-    name: "Copy full screen to clipboard (Cmd+Shift+3)"
-    parameters: [51, 20, 1179648]
   - id: 30
     name: "Save selected area to file (Cmd+Ctrl+Shift+4)"
     parameters: [52, 21, 1441792]
@@ -283,8 +234,6 @@ dock_apps:
   - /Applications/Obsidian.app
   - /Applications/Notion.app
   - /Applications/Claude.app
-  # No Codex.app here: the codex cask became CLI-only (bin/codex), so there is
-  # no app bundle to pin.
 
 # macOS Finder preferences (applied via community.general.osx_defaults)
 # domain is per-item because these span NSGlobalDomain, Finder, and desktopservices.
