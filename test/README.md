@@ -22,7 +22,6 @@ Two legs, same three gates (bootstrap → idempotency → end state):
 |---|---|
 | [`vm_test.sh`](vm_test.sh) | Clones/boots the Tart VM, syncs the repo in, drives the three gates over SSH |
 | [`verify.sh`](verify.sh) | End-state assertions; standalone — see below |
-| [`resolve_vars.yml`](resolve_vars.yml) | Renders vars.yml expectations (Obsidian paths) to JSON for verify.sh |
 | [`audit_check.py`](audit_check.py) | Turns the playbook's JSON `audit` report into pass/fail (fails on anything declared-but-missing, or macOS defaults drift) |
 | [`test-vars.yml`](test-vars.yml) | Minimal package lists layered over vars.yml (see Minimal mode) |
 
@@ -34,8 +33,8 @@ Two legs, same three gates (bootstrap → idempotency → end state):
    Any task that reports changed twice is a bug and is listed in the summary.
 3. **End state** — [`verify.sh`](verify.sh) asserts directories, the `.zshrc`
    managed blocks, git config, tooling on `PATH`, the generated SSH key, the
-   terminal stack (ghostty/starship), the herdr config, the Obsidian journal
-   setup, and the macOS `defaults`. Package coverage is derived from
+   terminal stack (ghostty/starship), the herdr config, and the macOS
+   `defaults`. Package coverage is derived from
    `vars.yml` by running the playbook's own `audit` tag, so it can't drift
    from the package lists.
 4. **touchid** (opt-in, `--touchid`) — the one task needing root.
@@ -116,8 +115,8 @@ test/vm_test.sh --touchid
 Iterate on a failure without paying for a re-clone:
 
 ```bash
-test/vm_test.sh --keep --tags obsidian
-test/vm_test.sh --reuse --keep --tags obsidian
+test/vm_test.sh --keep --tags herdr
+test/vm_test.sh --reuse --keep --tags herdr
 ```
 
 Logs land in `test/logs/<timestamp>/` (gitignored): `run1-bootstrap.log`,
@@ -135,7 +134,7 @@ unattended path, so that prompt is **not** covered:
 
 [`test-vars.yml`](test-vars.yml) overrides only the package lists and the Dock
 layout. Everything else — aliases, env block, git settings, the SSH gate,
-Obsidian, krew, the macOS `defaults` — still comes from `vars.yml` and is tested
+krew, the macOS `defaults` — still comes from `vars.yml` and is tested
 for real. It keeps one tap, one cask, and five small formulae, which is enough to
 exercise every Homebrew code path (tap / formula / cask) without the download.
 

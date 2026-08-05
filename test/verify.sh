@@ -3,8 +3,8 @@
 # Runs standalone on any machine the playbook has configured (VM, CI, or your
 # own): bash test/verify.sh [-e @test/test-vars.yml ...]
 
-# Everything here (resolve_vars.yml, files/obsidian/, mac-setup.yml) is
-# addressed relative to the repo root, so settle there regardless of caller.
+# mac-setup.yml is addressed relative to the repo root, so settle there
+# regardless of caller.
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$HOME/.krew/bin:$PATH"
@@ -13,42 +13,6 @@ pass=0; failed=0
 ok()   { printf '  PASS  %s\n' "$1"; pass=$((pass + 1)); }
 bad()  { printf '  FAIL  %s\n' "$1"; failed=$((failed + 1)); }
 check() { if eval "$2" >/dev/null 2>&1; then ok "$1"; else bad "$1"; fi; }
-
-resolved_vars="$(mktemp)"
-trap 'rm -f "$resolved_vars"' EXIT
-if ! ANSIBLE_DEPRECATION_WARNINGS=false ansible-playbook -i localhost, \
-  test/resolve_vars.yml "$@" -e ansible_python_interpreter=auto_silent \
-  -e "resolved_vars_path=$resolved_vars" >/dev/null; then
-  echo "  FAIL  could not resolve test expectations"
-  exit 1
-fi
-json_value() {
-  python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' \
-    "$resolved_vars" "$1"
-}
-obsidian_config_matches() {
-  python3 - "$resolved_vars" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-expected = json.load(open(sys.argv[1]))
-vault = Path(expected["vault"])
-daily = json.load(open(vault / ".obsidian/daily-notes.json"))
-templates = json.load(open(vault / ".obsidian/templates.json"))
-plugins = set(json.load(open(vault / ".obsidian/core-plugins.json")))
-assert daily == {
-    "folder": expected["journal_folder"],
-    "format": "YYYY-MM-DD",
-    "template": f'{expected["templates_folder"]}/Daily Journal',
-}
-assert templates == {"folder": expected["templates_folder"]}
-assert {"daily-notes", "templates"} <= plugins
-assert (vault / expected["templates_folder"] / "Daily Journal.md").read_bytes() == Path(
-    "files/obsidian/Daily Journal.md"
-).read_bytes()
-PY
-}
 
 echo "== Home directory structure =="
 for d in ansible ansible/playbooks ansible/roles repo repo/private repo/public \
@@ -106,14 +70,6 @@ if command -v herdr >/dev/null 2>&1; then
 else
   echo "  SKIP  herdr checks (formula not in this run's package list)"
 fi
-
-echo "== Obsidian =="
-vault="$(json_value vault)"
-journal_folder="$(json_value journal_folder)"
-templates_folder="$(json_value templates_folder)"
-check "journal folder created"   "[ -d '$vault/$journal_folder' ]"
-check "templates folder created" "[ -d '$vault/$templates_folder' ]"
-check "daily journal configuration" "obsidian_config_matches"
 
 echo "== macOS defaults =="
 check "Finder shows all extensions" \

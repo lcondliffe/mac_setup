@@ -32,15 +32,6 @@ hermes_git_branch: main
 # Pinned. Bump deliberately, after -t upgrade and a check that state survived.
 hermes_commit: 9ecacd6bf414d272b40ac5756650fc1014143e8f
 
-# Daily Notes creates Journal/YYYY-MM-DD.md from the managed template.
-obsidian_vault_path: "{{ ansible_facts.env.HOME }}/Documents/Obsidian Vault"
-obsidian_journal_folder: Journal
-obsidian_templates_folder: Templates
-obsidian_daily_notes_config:
-  folder: "{{ obsidian_journal_folder }}"
-  format: YYYY-MM-DD
-  template: "{{ obsidian_templates_folder }}/Daily Journal"
-
 # SSH key gate: refuse to run until an SSH key exists in ssh_dir, offering
 # to generate one (see tasks/ssh.yml). Disable with -e ssh_gate_enabled=false
 ssh_gate_enabled: true

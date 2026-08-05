@@ -108,5 +108,6 @@
 - name: Show the installed hermes version
   ansible.builtin.debug:
     msg: "{{ hermes_version_out.stdout_lines }}"
+    verbosity: 1
   when: hermes_install_enabled | bool
   tags: [hermes, upgrade]

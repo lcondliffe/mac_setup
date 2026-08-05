@@ -43,10 +43,6 @@
       ansible.builtin.include_tasks: tasks/pipx.yml
       tags: [pipx, packages, upgrade]
 
-    - name: Obsidian daily journal
-      ansible.builtin.include_tasks: tasks/obsidian.yml
-      tags: [obsidian]
-
     - name: Hermes agent (install only; its state is its own)
       ansible.builtin.include_tasks: tasks/hermes.yml
       tags: [hermes]

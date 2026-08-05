@@ -31,4 +31,5 @@
 - name: Output git config
   ansible.builtin.debug:
     msg: "{{ git_global_config.stdout_lines }}"
+    verbosity: 1
   tags: [git]

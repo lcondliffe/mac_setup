@@ -114,5 +114,6 @@
       - "To dictate to an agent: focus the herdr pane, hold the hotkey (fn), speak."
       - "fn is free at the macOS level via fn_key_usage; bind it inside superwhisper."
       - "Ghostty enables secure input at password prompts, so dictation is blocked there by design."
+    verbosity: 1
   when: dictation_enabled | bool
   tags: [dictation]

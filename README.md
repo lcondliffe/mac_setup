@@ -18,11 +18,11 @@ This is the Mac counterpart to [`~/repo/wsl_setup`](../wsl_setup) — same princ
 - herdr: `~/.config/herdr/config.toml` (rendered from [`templates/`](templates); deliberate overrides only) plus per-agent state-reporting hooks (`herdr_integrations`) so the sidebar and attention queue can tell running agents apart. Each integration installs into that agent's own config directory, which only exists once the agent has been launched — installing the cask is not enough. Integrations for agents that have never run are skipped with a message; launch them once, then re-run `-t herdr`. Also installs a Claude Code status line (`~/.claude/statusline.py`, rendered from [`templates/`](templates)) that prints Claude's 5h/7d rate-limit usage and reports it to herdr as a `$usage` pane token, shown on the sidebar's claude rows. Claude's status-line payload is the only place those figures are exposed, so there is no equivalent for codex — its rate limits are only in its session logs. The `statusLine` key is merged into `~/.claude/settings.json`; the rest of that file (hooks, model, plugins) is left alone.
 - Dictation (`dictation_apps`, currently **superwhisper**): hold `fn` in a herdr pane and the transcript arrives in that agent's prompt. Installs the cask and reports the manual setup — see [Dictating to agents](#dictating-to-agents).
 - VSCode extensions
-- Obsidian daily journalling: configures Daily Notes to create `Journal/YYYY-MM-DD.md` from a concise, emoji-headed template
 - Hermes, the on-device agent: installs the upstream CLI pinned to `hermes_commit` and its launchd gateway (so crons survive logout). Install-only by design — see below.
 
 **Not managed (intentional):**
 - Any plaintext secrets you may have in `~/.zshrc` / `~/.zprofile`. The playbook writes its content inside marker blocks (`# BEGIN/END ANSIBLE MANAGED BLOCK: ...`), so anything else in those files is left alone. If you want to keep secrets out of git, move them to `~/.zshrc.secrets` and source it from `~/.zshrc`.
+- The Obsidian vault (`~/Documents/Obsidian Vault`). The notes are the point, not the folder layout — a journal template and a `daily-notes.json` are trivial to recreate, while the vault itself only survives via backup. Restore it from your backup and Obsidian's own settings come with it. (It also sits in `~/Documents`, which macOS gates behind Full Disk Access, so managing it meant a per-machine permission grant that cannot be scripted.) The `obsidian` cask is still installed.
 - Hermes' state in `~/.hermes` (persona/SOUL.md, profiles, memories, config, skills). It's the agent's own, grown by talking to it — an earlier attempt at reconciling it from git fought every organic change. Back it up separately instead of managing it as code.
 
 ## Configuration
@@ -31,7 +31,6 @@ All knobs live in [`vars.yml`](vars.yml):
 - `homebrew_taps`, `homebrew_formulae`, `homebrew_casks`
 - `pipx_packages`, `vscode_extensions`
 - `hermes_commit`, `hermes_install_enabled`
-- `obsidian_vault_path`, `obsidian_journal_folder`, `obsidian_templates_folder`
 - `shell_aliases`, `env_vars`
 - `directories`
 - `git_user_name`, `git_user_email`, `git_settings`
@@ -57,6 +56,10 @@ Subsequent runs:
 ansible-playbook mac-setup.yml
 ```
 
+Output is kept to what changed and what needs your attention: skipped tasks are
+hidden, and informational dumps (git config, hermes version, dictation tips) only
+print with `-v`. Warnings and the audit/prune reports always show.
+
 Targeted runs with tags (faster, incremental):
 
 | Tag | What it touches |
@@ -72,7 +75,6 @@ Targeted runs with tags (faster, incremental):
 | `terminal` | Ghostty config + starship prompt + `.zshrc` starship init |
 | `herdr` | herdr `config.toml` + agent integrations (claude/codex/hermes state hooks) |
 | `hermes` | Hermes agent CLI (pinned to `hermes_commit`) + launchd gateway; `-t upgrade` moves the pin |
-| `obsidian` | Daily journal folders, template, and Daily Notes/Templates settings |
 | `dictation` | Dictation app install checks + permission/setup report (`dictation_apps`) |
 | `vscode` | VSCode extensions |
 | `keyboard,shortcuts` | macOS screenshot hotkeys + what the fn/globe key does (`fn_key_usage`) |
