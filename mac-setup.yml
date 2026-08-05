@@ -72,9 +72,11 @@
       ansible.builtin.include_tasks: tasks/screenshots.yml
       tags: [screenshots, macos]
 
-    - name: Touch ID for sudo (requires -K; skip with --skip-tags touchid)
+    # Opt-in: the only task needing root, so a normal run never has to ask for a
+    # sudo password. Run it with -t touchid -K, or via bootstrap_mac.sh -K.
+    - name: Touch ID for sudo (run explicitly, needs -K)
       ansible.builtin.include_tasks: tasks/touchid.yml
-      tags: [touchid, macos]
+      tags: [never, touchid]
 
     - name: Drift audit (read-only report; run with -t audit)
       ansible.builtin.include_tasks: tasks/audit.yml

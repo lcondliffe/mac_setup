@@ -48,7 +48,7 @@ First-time bootstrap (installs Homebrew + Ansible if missing, then runs the play
 ./bootstrap_mac.sh
 ```
 
-The bootstrap skips the `touchid` task unless you pass `-K` (it needs sudo); run it afterwards with `ansible-playbook mac-setup.yml -t touchid -K`.
+The `touchid` task is opt-in and off by default. Pass `-K` to the bootstrap to include it, or run it later with `ansible-playbook mac-setup.yml -t touchid -K`.
 
 Subsequent runs:
 
@@ -80,7 +80,7 @@ Targeted runs with tags (faster, incremental):
 | `dock` | macOS Dock preferences + pinned-app layout (`dock_apps` via dockutil) |
 | `finder` | macOS Finder preferences (extensions, hidden files, path/status bar, list view) |
 | `screenshots` | Screenshot save folder + no window shadow |
-| `touchid` | Enable Touch ID for `sudo` (needs `-K`) |
+| `touchid` | Enable Touch ID for `sudo` (opt-in, needs `-K`) |
 | `audit` | Read-only drift report: installed taps/brews/casks/extensions/pipx and the managed macOS `defaults` vs `vars.yml` |
 | `prune` | Uninstall brews/casks/extensions/pipx present on the machine but missing from `vars.yml`. Uninstalls immediately — run `-t audit` first to preview the drift, and keep deliberate one-offs in the `prune_ignore_*` lists |
 
@@ -135,5 +135,5 @@ Chosen over Wispr Flow (trialled side by side, July 2026): half the price, on-de
 
 ## Notes
 
-- Sudo: only the `touchid` task needs root. A normal full run needs `-K` (it will prompt for your sudo password), or run `ansible-playbook mac-setup.yml --skip-tags touchid` to keep it password-free. Everything else (Homebrew included) runs as the user.
+- Sudo: only the `touchid` task needs root, and it is opt-in — a normal full run never touches it and never needs `-K`. Enable it with `ansible-playbook mac-setup.yml -t touchid -K`. Everything else (Homebrew included) runs as the user.
 - The playbook expects Homebrew at `/opt/homebrew/bin/brew` (Apple Silicon). For Intel Macs, change the `PATH` in `vars.yml` to use `/usr/local/bin` and adjust the brew check in `tasks/homebrew.yml`.

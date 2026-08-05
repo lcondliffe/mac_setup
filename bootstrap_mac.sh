@@ -32,16 +32,16 @@ ansible-galaxy collection install community.general
 
 hash -r
 
-# The touchid task needs root (become: true). Unless the caller asked for a
-# sudo password prompt, skip it so a plain bootstrap run finishes clean.
+# The touchid task needs root (become: true) and is never-tagged, so it is off
+# unless asked for. 'all,touchid' means everything plus that one opt-in task.
 case " $* " in
   *" -K "* | *" --ask-become-pass "*)
-    ansible-playbook mac-setup.yml "$@"
+    ansible-playbook mac-setup.yml --tags all,touchid "$@"
     ;;
   *)
     echo "Note: skipping the touchid task (needs sudo). Run it later with:"
     echo "  ansible-playbook mac-setup.yml -t touchid -K"
-    ansible-playbook mac-setup.yml --skip-tags touchid "$@"
+    ansible-playbook mac-setup.yml "$@"
     ;;
 esac
 
