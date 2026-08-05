@@ -92,7 +92,13 @@
     want_casks: "{{ homebrew_casks | map('regex_replace', '^.*/', '') | list }}"
     want_extensions: "{{ vscode_extensions | map('lower') | list }}"
     have_extensions: "{{ audit_code_extensions.stdout_lines | default([]) | map('lower') | list }}"
-    have_pipx: "{{ audit_pipx.stdout_lines | default([]) | map('regex_replace', ' .*$', '') | list }}"
+    # `pipx list --short` prints "<name> <version>", but mixes warning prose into
+    # the same stream when a venv is broken. Keep only real package lines, or the
+    # warning text becomes a phantom prune candidate.
+    have_pipx: >-
+      {{ audit_pipx.stdout_lines | default([])
+         | select('match', '^[A-Za-z0-9][A-Za-z0-9._-]* [0-9]')
+         | map('regex_replace', ' .*$', '') | list }}
   ansible.builtin.debug:
     msg:
       taps_installed_but_not_in_vars: "{{ audit_brew_taps.stdout_lines | difference(homebrew_taps) | sort }}"
