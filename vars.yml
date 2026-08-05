@@ -39,9 +39,10 @@ directories:
   - "{{ ansible_facts.env.HOME }}/scripts"
   - "{{ ansible_facts.env.HOME }}/temp"
 
-# brew trust --tap every tap below: declaring one here is the trust decision.
-# Untrusted taps drop out of `brew leaves`, which blinds the audit/prune reports.
+# brew trust --tap every tap below: declaring one here is the trust decision
 homebrew_trust_taps: true
+homebrew_upgrade_exclude:
+  - ansible # If ansible is upgraded, it breaks the playbook run in progress.
 
 # Homebrew taps
 homebrew_taps:
@@ -258,6 +259,7 @@ shell_aliases:
   gst: git status
   k: kubectl
   ll: ls -al
+  mack: hermes
   passgen: tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16 ; echo
   pc: pre-commit run --all-files
   tailscale: /Applications/Tailscale.app/Contents/MacOS/Tailscale

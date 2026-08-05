@@ -46,8 +46,14 @@
 
 - name: Upgrade Homebrew formulae (run explicitly)
   community.general.homebrew:
-    name: "{{ homebrew_formulae }}"
+    name: "{{ homebrew_formulae | difference(homebrew_upgrade_exclude) }}"
     state: latest
+  tags: [never, upgrade]
+
+- name: Report formulae excluded from the upgrade
+  ansible.builtin.debug:
+    msg: "Upgrade these by hand: brew upgrade {{ homebrew_upgrade_exclude | join(' ') }}"
+  when: homebrew_upgrade_exclude | length > 0
   tags: [never, upgrade]
 
 # greedy: also move casks whose apps self-update (see homebrew_cask_upgrade_greedy).
