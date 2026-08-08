@@ -54,12 +54,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Bootstrap (installs Ansible via brew, then runs the playbook)
-        run: ./bootstrap_mac.sh $PLAYBOOK_ARGS
+        # PLAYBOOK_ARGS is several arguments in one string, so the split is wanted.
+        run: |
+          # shellcheck disable=SC2086
+          ./bootstrap_mac.sh $PLAYBOOK_ARGS
       - name: Idempotency (second run must report changed=0)
         # pipefail: without it, tee masks a failed playbook exit and a
         # changed=0 recap from a failed run would false-pass this step.
         run: |
           set -o pipefail
+          # shellcheck disable=SC2086 # PLAYBOOK_ARGS is several args in one string
           ansible-playbook mac-setup.yml $PLAYBOOK_ARGS | tee run2.log
           changed=$(grep -Eo 'changed=[0-9]+' run2.log | tail -1 | cut -d= -f2)
           if [ "$changed" != 0 ]; then
